@@ -34,9 +34,9 @@ interacting with a FoLiA document consist of statements in FoLiA Query Language
 
 Features:
 
- * versioning control support using git
- * full support for corrections
- * support for concurrency 
+* versioning control support using git
+* full support for corrections
+* support for concurrency 
 
 
 Note that this webservice is *NOT* intended to be publicly exposed, but rather
@@ -52,9 +52,9 @@ Webservice Specification
 
 Common variables in request URLs:
 
- * **namespace** - A group identifier
- * **docid** - The FoLiA document ID
- * **sessionid** - A session ID, can be set to ``NOSID`` if no sessioning is
+* **namespace** - A group identifier
+* **docid** - The FoLiA document ID
+* **sessionid** - A session ID, can be set to ``NOSID`` if no sessioning is
    desired. Usage of session IDs enable functionality such as caching and
    concurrency.
 
@@ -62,8 +62,8 @@ Common variables in request URLs:
 Querying & Annotating
 ---------------------------
 
- * ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid``.
- * ``/query/<namespace>/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
+* ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid``.
+* ``/query/<namespace>/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
 
 These URLs will return HTTP 200 OK, with data in the format as requested in the FQL
 query if the query is succesful. If the query contains an error, an HTTP 404 response
@@ -73,19 +73,16 @@ will be returned.
 Versioning
 -------------
 
- * ``/getdochistory/<namespace>/<docid>`` (GET) - Obtain the git history for the specified
-  document. Returns a JSON response:  ``{'history':[ {'commit': commithash,
-  'msg': commitmessage, 'date': commitdata } ] }``
- * ``/revert/<namespace>/<docid>/<commithash>`` (GET) - Revert the document's state to
-  the specified commit hash
+* ``/getdochistory/<namespace>/<docid>`` (GET) - Obtain the git history for the specified document. Returns a JSON response:  ``{'history':[ {'commit': commithash, 'msg': commitmessage, 'date': commitdata } ] }``
+* ``/revert/<namespace>/<docid>/<commithash>`` (GET) - Revert the document's state to the specified commit hash
 
 ---------------------------
 Document Management
 ---------------------------
 
- * ``/namespaces/`` (GET) -- List of all the namespaces
- * ``/index/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
- * ``/upload/<namespace>/`` (POST) -- Uploads a FoLiA XML document to a namespace, request body contains FoLiA XML.
+* ``/namespaces/`` (GET) -- List of all the namespaces
+* ``/index/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
+* ``/upload/<namespace>/`` (POST) -- Uploads a FoLiA XML document to a namespace, request body contains FoLiA XML.
 
 
 ========================================
@@ -98,10 +95,9 @@ FQL statements are separated by newlines and encoded in UTF-8.
 Global vaiables
 -------------------
 
-* ``SET <variable>=<value>`` - Sets global variables that apply to all statements
-  that follow. String values need to be in double quotes. Available variables are:
- * **annotator** - The name of the annotator 
- * **annotatortype** - The type of the annotator, can be *auto* or *manual* 
+* ``SET <variable>=<value>`` - Sets global variables that apply to all statements that follow. String values need to be in double quotes. Available variables are:
+* **annotator** - The name of the annotator 
+* **annotatortype** - The type of the annotator, can be *auto* or *manual* 
 
 -------------------
 Document Selection
@@ -122,10 +118,10 @@ Actions
 The next part of an FQL statement consists of an action verb, the following are
 available
 
- * ``<document selector> **SELECT** <actor expression> [<target expression>]`` - Selects an annotation
- * ``<document selector> **DELETE** <actor expression> [<target expression>]`` - Deletes an annotation
- * ``<document selector> **EDIT** <actor expression> [<target expression>]`` - Edits an existing annotation
- * ``<document selector> **ADD** <actor expression> <target expression>`` - Adds an annotation
+* ``<document selector> **SELECT** <actor expression> [<target expression>]`` - Selects an annotation
+* ``<document selector> **DELETE** <actor expression> [<target expression>]`` - Deletes an annotation
+* ``<document selector> **EDIT** <actor expression> [<target expression>]`` - Edits an existing annotation
+* ``<document selector> **ADD** <actor expression> <target expression>`` - Adds an annotation
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -141,14 +137,15 @@ regardless of set).
 To further filter a the actor, the expression may consist of a **WHERE** clause
 that filters on one or more FoLiA attributes:
 
- * **class**
- * **annotator**
- * **annotatortype**
- * **n**
- * **confidence**
+* **class**
+* **annotator**
+* **annotatortype**
+* **n**
+* **confidence**
 
 The following attribute is also available on when the elements contains text:
- * **text**
+
+* **text**
 
 The **WHERE** statement requires an operator (=,!=,>,<,<=,>=), the **AND**,
 **OR** and **NOT** operators are available (along with parentheses) for
@@ -234,15 +231,15 @@ the elements in the span selection.
 
 The return type can be set using the **RETURN** keyword:
 
- * **RETURN xml** - Returns FoLiA XML, the response is contained in a simple
+* **RETURN xml** - Returns FoLiA XML, the response is contained in a simple
    ``<results><result/></results>`` structure. 
- * **RETURN SINGLE xml** - Like above, but returns pure unwrapped FoLiA XML and
+* **RETURN SINGLE xml** - Like above, but returns pure unwrapped FoLiA XML and
    therefore only works if the response only contains one element. An error
    will be raised otherwise.
- * **RETURN json** - Returns JSON list
- * **RETURN SINGLE json** - Like above, but return a single element rather than
-   a list. An error will be raised if the response contains multiple.
- * **RETURN flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
+* **RETURN json** - Returns JSON list
+* **RETURN SINGLE json** - Like above, but return a single element rather than
+  a list. An error will be raised if the response contains multiple.
+* **RETURN flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
    containing an HTML skeleton of structure elements (key html), parsed annotations
    (key annotations). If the query returns a full FoLiA document, then the JSON object will include parsed set definitions, (key
    setdefinitions), and declarations.  
