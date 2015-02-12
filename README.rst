@@ -8,7 +8,7 @@ in the FoLiA format, a rich XML-based format for linguistic annotation
 FoLiA documents through the FoLiA Query Language (FQL).  However, it is not
 designed as a multi-document search tool.
 
-The FoLiA Document server is used by FLAT (https://github.com/flat)
+The FoLiA Document server is used by FLAT (https://github.com/proycon/flat)
 
 The FoLiA Document Server is written in Python 3, using the FoLiA library in
 pynlpl and cherrypy.
