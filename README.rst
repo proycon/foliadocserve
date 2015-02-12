@@ -30,14 +30,14 @@ The document server is a webservice that receives requests over HTTP. Requests
 interacting with a FoLiA document consist of statements in FoLiA Query Language
 (FQL). Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts too).
 
-===================================
+=========================================
 Webservice Specification
-==================================
+=========================================
 
- TODO
+* TODO
 
-===================================
+========================================
 FoLiA Query Language (FQL)
-==================================
+========================================
 
- TODO: FQL documentation goes here
+* TODO: FQL documentation goes here
