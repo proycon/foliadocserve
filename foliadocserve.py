@@ -624,11 +624,11 @@ def doannotation(doc, data):
                 if Class is folia.Word:
                     if isinstance(target, folia.Word):
                         p = target.ancestor(folia.AbstractStructureElement)
-                        p.deleteword(target,set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=folia.AnnotatorType.MANUAL, datetime=edit['datetime']) #does correction
+                        p.deleteword(target,set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime']) #does correction
                 else:
                     #probably a span annotation
                     p = target.parent
-                    p.correct(original=target, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=folia.AnnotatorType.MANUAL, datetime=edit['datetime'])
+                    p.correct(original=target, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
 
                 if not p.id in response['returnelementids']:
                     response['returnelementids'].append(p.id )
