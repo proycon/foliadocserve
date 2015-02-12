@@ -177,10 +177,12 @@ The query is fairly crude as it still lacks a *target expression*: A *target
 expression* determines what elements the actor is applied to, rather than to
 the document as a whole, it starts with the keyword **FOR** and is followed by
 either an annotation type (i.e. a FoLiA XML element tag) *or* the ID of an
-element.
+element. The target expression also determines what elements will be returned.
+More on this in a later section.
 
 The following FQL query shows how to get the part of speech tag for a
-particular word::
+particular word, it will actually return the full word, provided it has a
+part-of-speech annotation::
 
  IN somegroup/mydoc SELECT pos FOR mydocument.word.3 
 
@@ -315,6 +317,11 @@ Now we do the same but as an explicit correction::
 
  IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
 
+Another example in a spelling correction context, we correct the misspelling
+*concous* to *conscious**::
+
+ IN somegroup/mydoc EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "concous"
+
 The **AS CORRECTION** keyword (always in a separate block within parentheses) is used to
 initiate a correction. The correction is itself part of a set with a class that
 indicates the type of correction.
@@ -327,12 +334,12 @@ Confidence scores are often associationed with alternatives::
 
  IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
 
-
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
 words, but leaving it up to the user which of the suggestions to accept::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS SUGGESTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
+ IN somegroup/mydoc EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "fly"
+
 
 In the case of alternatives and suggestions, this syntax becomes inefficient if
 you want to add muliple alternatives or suggestions at once, as you'd have to
@@ -348,7 +355,9 @@ An example for suggestions for correction::
 
  IN somegroup/mydoc EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6 SUGGEST clasS "n" WITH confidence 0.4) FOR w WHERE text = "fly"
 
+In a spelling correction context::
 
+ IN somegroup/mydoc EDIT t (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror" SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) FOR w WHERE text = "concous"
 
 
 
