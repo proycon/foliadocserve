@@ -1027,6 +1027,8 @@ class Root:
         except NoSuchDocument:
             raise cherrypy.HTTPError(404, "Document not found: " + namespace + "/" + docid)
 
+
+
     @cherrypy.expose
     def getdochistory(self, namespace, docid):
         namepace = namespace.replace('/','').replace('..','').replace(';','').replace('&','')
@@ -1110,7 +1112,15 @@ class Root:
 
             doc = self.docstore[(ns,docid)]
 
-            annotationdata = { 'edits': data[(ns,docid)], 'annotator': request['annotator'] }
+            if 'annotatortype' in request:
+                if request['annotatortype'] == 'auto':
+                    annotatortype = folia.AnnotatorType.AUTO
+                else:
+                    annotatortype = folia.AnnotatorType.MANUAL
+            else:
+                annotatortype = folia.AnnotatorType.MANUAL
+
+            annotationdata = { 'edits': data[(ns,docid)], 'annotator': request['annotator'], 'annotatortype': annotatortype }
             try:
                 response = doannotation(doc, annotationdata)
             except Exception as e:
