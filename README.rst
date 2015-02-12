@@ -154,8 +154,8 @@ grouping and boolean logic.i
 We can now show some examples of full queries:
 
 * ``IN somegroup/mydoc SELECT pos OF "http://some.domain/some.folia.set.xml"``
-* ``IN somegroup/mydoc SELECT pos WHERE class="n" AND annotator="johndoe"``
-* ``IN somegroup/mydoc DELETE pos WHERE class="n" AND annotator!="johndoe"``
+* ``IN somegroup/mydoc SELECT pos WHERE class = "n" AND annotator = "johndoe"``
+* ``IN somegroup/mydoc DELETE pos WHERE class = "n" AND annotator != "johndoe"``
 
 The **ADD** and **EDIT** change actual attributes, this is done using the
 **WITH** keyword. It applies to all the common FoLiA attributes like the
@@ -167,7 +167,7 @@ ADD supports only WITH.
 
 Here is an EDIT query that changes all nouns in the document to verbs::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class="n" AND annotator="johndoe"
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" AND annotator = "johndoe"
 
 The query is fairly crude as it still lacks a *target expression*: A *target
 expression* determines what elements the actor is applied to, rather than to
@@ -194,11 +194,11 @@ Multiple targets may be specified, space delimited::
 
 The target expression can again contain a **WHERE** filter::
 
- IN somegroup/mydoc SELECT pos FOR w WHERE class!="PUNCT"
+ IN somegroup/mydoc SELECT pos FOR w WHERE class != "PUNCT"
 
 Target expressions, starting with the **FOR** keyword, can be nested::
 
- IN somegroup/mydoc SELECT pos FOR w WHERE class!="PUNCT" FOR event WHERE class="tweet"
+ IN somegroup/mydoc SELECT pos FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
 
 Target expressions are vital for span annotation, they keyword **SPAN** indicates
 that the target is a span (to do multiple spans at once, repeat the SPAN
@@ -211,7 +211,7 @@ siblings.  Consider the following example that changes the part of speech tag
 to "verb", for all occurrences of words that have lemma "fly". The parentheses
 are mandatory for a **HAS** statement::
 
- IN somegroup/mydoc EDIT pos OF "someposset" WITH class="v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
+ IN somegroup/mydoc EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
 
 
 ---------------
@@ -259,11 +259,63 @@ NOTHING``, the latter may be useful in combination with **ADD**, **EDIT** and
  
 Note that if you set request wrong you may quickly end up with empty results.
 
----------------
-Corrections
----------------
+------------------------------
+Corrections and Alternatives
+------------------------------
 
-TODO
+Both FoLiA and FQL have explicit support for corrections and alternatives on
+annotations. A correction is not a blunt substitute of an annotation of any
+type, but the original is preserved as well. Similarly, an alternative
+annotation is one that exists alongside the actual annotation of the same type
+and set, and is not authoritative.
+
+The following example is a correction but not in the FoLiA sense, it bluntly changes part-of-speech
+annotation of all occurrences of the word "fly" from "n" to "v", for example to
+correct erroneous tagger output::
+
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" FOR w WHERE text = "fly"
+
+Now we do the same but as an explicit correction::
+
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
+
+The **AS** keyword (always in a separate block within parentheses) is used to
+initiate a correction. The correction is itself part of a set with a class that
+indicates the type of correction.
+
+Alternatives are simpler, but follow the same principle::
+
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE) FOR w WHERE text = "fly"
+
+Confidence scores are often associationed with alternatives::
+
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
+
+
+FoLiA does not just distinguish corrections, but also supports suggestions for
+correction. Envision a spelling checker suggesting output for misspelled
+words, but leaving it up to the user which of the suggestions to accept.
+
+ IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS SUGGESTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
+
+
+In the case of alternatives and suggestions, this syntax becomes inefficient if
+you want to add muliple alternatives or suggestions at once, as you'd have to
+repeat the query for each. Therefore, FQL allows you to omit the **WITH**
+statement and replace it with the **ALTERNATIVE** or **SUGGEST** statement
+within the **AS** clause.
+
+An example for alternatives::
+
+ IN somegroup/mydoc EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
+
+An example for suggestions for correction::
+
+ IN somegroup/mydoc EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6 SUGGEST clasS "n" WITH confidence 0.4) FOR w WHERE text = "fly"
+
+
+
+
 
 
 
