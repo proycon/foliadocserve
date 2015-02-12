@@ -30,11 +30,42 @@ The document server is a webservice that receives requests over HTTP. Requests
 interacting with a FoLiA document consist of statements in FoLiA Query Language
 (FQL). Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts too).
 
+Features:
+
+ * versioning control support using git
+ * full support for corrections
+ * support for concurrency 
+
+
 =========================================
 Webservice Specification
 =========================================
 
-* TODO
+-------------
+Querying
+------------
+
+
+
+-------------
+Annotation
+-------------
+
+ * ``/annotate/$namespace/$docid/$sessionid`` (POST) - The content body is a JSON object
+   with key ``queries`` mapping to a list of FQL statements (strings).
+   Additional information in the JSON object:
+    * ``annotator`` - The annotator 
+    * ``annotatortype`` - The annotator type (manual or auto)
+
+-------------
+Versioning
+-------------
+
+ * ``/getdochistory/$namespace/$docid`` (GET) - Obtain the git history for the specified
+  document. Returns a JSON response:  ``{'history':[ {'commit': commithash,
+  'msg': commitmessage, 'date': commitdata } ] }``
+ * ``/revert/$namespace/$docid/$commithash`` (GET) - Revert the document's state to
+  the specified commit hash
 
 ========================================
 FoLiA Query Language (FQL)
