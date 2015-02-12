@@ -89,7 +89,9 @@ Document Management
 FoLiA Query Language (FQL)
 ========================================
 
-FQL statements are separated by newlines and encoded in UTF-8.
+FQL statements are separated by newlines and encoded in UTF-8. The expressions
+are case sensitive, all keywords are in upper case, all element names and attributes in lower
+case.
 
 -------------------
 Global vaiables
@@ -149,7 +151,8 @@ The following attribute is also available on when the elements contains text:
 
 The **WHERE** statement requires an operator (=,!=,>,<,<=,>=), the **AND**,
 **OR** and **NOT** operators are available (along with parentheses) for
-grouping and boolean logic.i
+grouping and boolean logic. The operators must never be glued to the attribute
+name or the value, but have spaces left and right.
 
 We can now show some examples of full queries:
 
@@ -163,7 +166,8 @@ WHERE keyword, but has no operator or boolean logic, as it is a pure
 assignment function.
 
 SELECT and DELETE only support WHERE, EDIT supports both WHERE and WITH, and
-ADD supports only WITH.
+ADD supports only WITH. If an EDIT is done on an annotation that can not be
+found, and there is no WHERE clause, then it will fall back to ADD.
 
 Here is an EDIT query that changes all nouns in the document to verbs::
 
@@ -213,6 +217,38 @@ are mandatory for a **HAS** statement::
 
  IN somegroup/mydoc EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
 
+
+---------
+Text
+---------
+
+Our previous examples mostly focussed on part of speech annotation. In this
+section we look at text content, which in FoLiA is an annotation element too
+(t).
+
+Here we change the text of a word::
+
+ IN somegroup/mydoc EDIT t WITH text = "house" FOR mydoc.word.45 
+
+Here we edit or add (recall that EDIT falls back to ADD when not found and
+there is no further selector) a lemma and check on text content::
+
+ IN somegroup/mydoc EDIT lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
+
+
+You can use WHERE text on all elements, it will cover both explicit text
+content as well as implicit text content, i.e. inferred from child elements. If
+you want to be really explicit you can do::
+
+ IN somegroup/mydoc EDIT lemma WITH class "house" FOR w WHERE (t HAS text = "house")
+
+
+**Advanced**:
+
+Such syntax is required when covering texts with custom classes, such as
+OCRed or otherwise pre-normalised text. Consider the following OCR correction::
+
+ IN somegroup/mydoc ADD t WITH text = "spell" FOR w WHERE (t HAS text = "spe11" AND class = "OCR" )
 
 ---------------
 Query Response
@@ -279,7 +315,7 @@ Now we do the same but as an explicit correction::
 
  IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
 
-The **AS** keyword (always in a separate block within parentheses) is used to
+The **AS CORRECTION** keyword (always in a separate block within parentheses) is used to
 initiate a correction. The correction is itself part of a set with a class that
 indicates the type of correction.
 
@@ -294,10 +330,9 @@ Confidence scores are often associationed with alternatives::
 
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
-words, but leaving it up to the user which of the suggestions to accept.
+words, but leaving it up to the user which of the suggestions to accept::
 
  IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS SUGGESTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
-
 
 In the case of alternatives and suggestions, this syntax becomes inefficient if
 you want to add muliple alternatives or suggestions at once, as you'd have to
