@@ -118,10 +118,10 @@ Actions
 The next part of an FQL statement consists of an action verb, the following are
 available
 
-* ``<document selector> **SELECT** <actor expression> [<target expression>]`` - Selects an annotation
-* ``<document selector> **DELETE** <actor expression> [<target expression>]`` - Deletes an annotation
-* ``<document selector> **EDIT** <actor expression> [<target expression>]`` - Edits an existing annotation
-* ``<document selector> **ADD** <actor expression> <target expression>`` - Adds an annotation
+* ``<document selector> SELECT <actor expression> [<target expression>]`` - Selects an annotation
+* ``<document selector> DELETE <actor expression> [<target expression>]`` - Deletes an annotation
+* ``<document selector> EDIT <actor expression> [<target expression>]`` - Edits an existing annotation
+* ``<document selector> ADD <actor expression> <target expression>`` - Adds an annotation
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
