@@ -39,6 +39,13 @@ Features:
  * support for concurrency 
 
 
+Note that this webservice is *NOT* intended to be publicly exposed, but rather
+to be used as a back-end by another system. The document server does support
+constraining namespaces to certain session ids, constraining FQL queries to not
+violate their namespace, and constraining uploads by session id or namespace.
+This is secure for public exposure only when explicitly enabled and used over
+HTTPS.
+
 =========================================
 Webservice Specification
 =========================================
@@ -55,8 +62,12 @@ Common variables in request URLs:
 Querying & Annotating
 ---------------------------
 
- * ``/query/`` (POST) - Content body consists of FQL queries, one per line (text/plain)
- * ``/query/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
+ * ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid``.
+ * ``/query/<namespace>/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
+
+These URLs will return HTTP 200 OK, with data in the format as requested in the FQL
+query if the query is succesful. If the query contains an error, an HTTP 404 response
+will be returned. 
 
 -------------
 Versioning
@@ -75,6 +86,7 @@ Document Management
  * ``/namespaces/`` (GET) -- List of all the namespaces
  * ``/index/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
  * ``/upload/<namespace>/`` (POST) -- Uploads a FoLiA XML document to a namespace, request body contains FoLiA XML.
+
 
 ========================================
 FoLiA Query Language (FQL)
@@ -243,10 +255,12 @@ elements returned by using the **REQUEST** keyword, it takes the names of FoLiA 
 Or after a query::
 
  IN somegroup/mydoc SELECT pos FOR w WHERE class!="PUNCT" FOR event WHERE class="tweet" REQUEST w,pos,lemma
+
+Two special uses of request are ``REQUEST ALL`` (default) and ``REQUEST
+NOTHING``, the latter may be useful in combination with **ADD**, **EDIT** and
+**DELETE**, by default it will return the updated state of the document.
  
 Note that if you set request wrong you may quickly end up with empty results.
-
-
 
 ---------------
 Corrections
