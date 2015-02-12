@@ -151,11 +151,11 @@ The **WHERE** statement requires an operator (=,!=,>,<,<=,>=), the **AND**,
 **OR** and **NOT** operators are available (along with parentheses) for
 grouping and boolean logic.i
 
-We can now show some examples of full queries::
+We can now show some examples of full queries:
 
- IN somegroup/mydoc SELECT pos OF "http://some.domain/some.folia.set.xml" 
- IN somegroup/mydoc SELECT pos WHERE class="n" AND annotator="johndoe"
- IN somegroup/mydoc DELETE pos WHERE class="n" AND annotator!="johndoe"
+* ``IN somegroup/mydoc SELECT pos OF "http://some.domain/some.folia.set.xml"``
+* ``IN somegroup/mydoc SELECT pos WHERE class="n" AND annotator="johndoe"``
+* ``IN somegroup/mydoc DELETE pos WHERE class="n" AND annotator!="johndoe"``
 
 The **ADD** and **EDIT** change actual attributes, this is done using the
 **WITH** keyword. It applies to all the common FoLiA attributes like the
