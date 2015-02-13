@@ -235,6 +235,15 @@ are mandatory for a **HAS** statement::
 
  EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
 
+Target expressions can be former with either **FOR** or with **IN**, the
+difference is that **IN** is much stricter, the element has to be a direct
+child of the element in the **IN** statement, whereas **FOR** may skip
+intermediate elements. In analogy with XPath, **FOR** corresponds to ``//`` and
+**IN** corresponds to ``/``. **FOR** and **IN** may be nested and mixed at
+will. The following query would most likely not yield any results because there are
+likely to be paragraphs and/or sentences between the wod and event structures::
+
+ SELECT pos FOR w WHERE class != "PUNCT" IN event WHERE class = "tweet"
 
 ---------
 Text
@@ -278,7 +287,9 @@ We have shown how to do queries but not yet said anything on how the response is
 returned. This is regulated using the **RETURN** keyword:
 
 * **RETURN actor** (default)
-* **RETURN target**
+* **RETURN target** or **RETURN inner-target**
+* **RETURN outer-target**
+* **RETURN ancestor-target**
 
 The default actor mode just returns the actor. Sometimes, however, you may want
 more context and may want to return the target expression instead. In the
@@ -287,9 +298,11 @@ are most likely interested in the word to which it applies::
 
  SELECT pos WHERE class = "n" FOR w RETURN target
 
-In *target* mode, and if the target expression is a SPAN expression, then the
-structure element that embeds the span will be returned, i.e. the first common
-structural ancestor of the elements in the span selection.
+When there are nested FOR/IN loops, you can specify whether you want to return
+the inner one (highest granularity, default) or the outer one (widest scope).
+You can also decide to return the first common structural ancestor of the
+(outer) targets, which may be specially useful in combination with the **SPAN**
+keyword.
 
 The return type can be set using the **FORMAT** statement:
 
@@ -357,11 +370,22 @@ exclusively constrained to single words "John"::
 
 We can use that construct to select all people named John Doe for instance::
 
- SELECT entity WHERE class = "person" FOR SPAN w WHERE text = "John" & w
- WHERE text = "Doe"
+ SELECT entity WHERE class = "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe"
 
 
  
+Span annotations like syntactic units are typically nested trees, a tree query
+such as "//pp/np/adj" can be represented as follows. Recall that the **IN**
+statement starts a target expression like **FOR**, but is stricter on the
+hierarchy, which is what we would want here::
+
+ SELECT su WHERE class = "adj" IN su WHERE class = "np" IN su WHERE class = "pp"
+
+In such instances we may be most interested in obtaining the full PP:: 
+
+ SELECT su WHERE class = "adj" IN su WHERE class = "np" IN su WHERE class = "pp" RETURN outer-target
+ 
+
 
 
 ------------------------------
