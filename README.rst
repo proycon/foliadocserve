@@ -337,8 +337,6 @@ fictitious set for a change) of people that have the name John.
 The result set will contain all the words the entity applies too, as well as the entity as a whole::
 
 
- FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
-
 
 ------------------------------
 Corrections and Alternatives
