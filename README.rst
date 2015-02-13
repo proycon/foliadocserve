@@ -350,11 +350,11 @@ The return type can be set using the **FORMAT** statement:
 
 * **FORMAT xml** - Returns FoLiA XML, the response is contained in a simple
    ``<results><result/></results>`` structure. 
-* **FORMAT SINGLE xml** - Like above, but returns pure unwrapped FoLiA XML and
+* **FORMAT single-xml** - Like above, but returns pure unwrapped FoLiA XML and
    therefore only works if the response only contains one element. An error
    will be raised otherwise.
 * **FORMAT json** - Returns JSON list
-* **FORMAT SINGLE json** - Like above, but returns a single element rather than
+* **FORMAT single-json** - Like above, but returns a single element rather than
   a list. An error will be raised if the response contains multiple.
 * **FORMAT flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
    containing an HTML skeleton of structure elements (key html), parsed annotations
