@@ -97,12 +97,21 @@ As a general rule, it is more efficient to do a single big query than multiple
 standalone queries.
 
 -------------------
-Global vaiables
+Global variables
 -------------------
 
 * ``SET <variable>=<value>`` - Sets global variables that apply to all statements that follow. String values need to be in double quotes. Available variables are:
 * **annotator** - The name of the annotator 
 * **annotatortype** - The type of the annotator, can be *auto* or *manual* 
+
+Usually your queries on a particular annotation type are limited to one
+specific set. To prevent having to enter the set explicitly in your queries,
+you can set defaults. The annotation type corresponds to a FoLiA element::
+
+ DEFAULTSET entity https://raw.githubusercontent.com/proycon/folia/master/setdefinitions/namedentitycorrection.foliaset.xml
+
+If the FoLiA document only has one set of that type anyway, then this is not even
+necessary and the default will be automatically set.
 
 -------------------
 Document Selection
@@ -111,7 +120,7 @@ Document Selection
 Almost FQL statements start with a document selector, represented by the
 keyword **USE**::
 
-    USE <namespace>/<docid> 
+ USE <namespace>/<docid> 
 
 This select what document to apply the query to, the document will be
 automatically loaded and unloaded by the server as it sees fit. It can be
@@ -136,10 +145,10 @@ specified using ``OF <set>`` and/or the ID with ``ID <id>``. An example:
 
  pos OF "http://some.domain/some.folia.set.xml"
 
-If an annotation type is already declared and there is only one in document, the **OF**
-statement can be omitted and will be implied and detected automatically. If it
-is ambiguous, an error will be raised (rather than applying the query
-regardless of set).
+If an annotation type is already declared and there is only one in document, or
+if the **DEFAULTSET** statement was used earlier, then the **OF** statement can
+be omitted and will be implied and detected automatically. If it is ambiguous,
+an error will be raised (rather than applying the query regardless of set).
 
 To further filter a the actor, the expression may consist of a **WHERE** clause
 that filters on one or more FoLiA attributes:
@@ -287,6 +296,7 @@ We have shown how to do queries but not yet said anything on how the response is
 returned. This is regulated using the **RETURN** keyword:
 
 * **RETURN actor** (default)
+* **RETURN parent** - Returns the parent of the actor
 * **RETURN target** or **RETURN inner-target**
 * **RETURN outer-target**
 * **RETURN ancestor-target**
@@ -484,9 +494,18 @@ Instead of **PARENT**, the use of a nested **FOR** is preferred and more efficie
 
  SELECT lemma FOR w FOR s WHERE text CONTAINS "wine" 
 
- 
+Let's revisit syntax trees for a bit now we know how to obtain context. Imagine
+we want an NP to the left of a PP::
 
+ SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp")
 
+... and where the whole thing is part of a VP::
+
+ SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp") IN su WHERE class = "vp"
+
+... and return that whole tree rather than just the NP we were looking for::
+
+ SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp") IN su WHERE class = "vp" RETURN target
 
 
 
