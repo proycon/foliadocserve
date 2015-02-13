@@ -1,4 +1,4 @@
-**NOTE: This documentation describes a newer version than currently implemented!!**
+**NOTE: This documentation describes a newer version than currently implemented and is a draft for the new implementation!!**
  
 *****************************************
 FoLiA Document Server
@@ -143,7 +143,9 @@ available
 * ``SELECT <actor expression> [<target expression>]`` - Selects an annotation
 * ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
 * ``EDIT <actor expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
-* ``ADD <actor expression> <assignment expression> <target expression>`` - Adds an annotation
+* ``ADD <actor expression> <assignment expression> <target expression>`` - Adds an annotation (to the target expression)
+* ``APPEND <actor expression> <assignment expression> <target expression>`` - Adds an annotation after the target expression
+* ``PREPEND <actor expression> <assignment expression> <target expression>`` - Adds an annotation before the target expression
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -271,6 +273,13 @@ It is also possible to nest actions, use parentheses for this::
 
 Though explicitly specified here, IDs will be automatically generated when necessary and not specified.
 
+The **ADD** action has two cousins: **APPEND** and **PREPEND**.
+Instead of adding something in the scope of the target expression, they either append
+or prepend an element, so the inserted element will be a sibling::
+ 
+ APPEND w (ADD t WITH text "house") FOR w WHERE text = "the"
+
+This above query appends/inserts the word "house" after every definite article.
 
 ---------
 Text
@@ -303,7 +312,6 @@ Such syntax is required when covering texts with custom classes, such as
 OCRed or otherwise pre-normalised text. Consider the following OCR correction::
 
  ADD t WITH text = "spell" FOR w WHERE (t HAS text = "spe11" AND class = "OCR" )
-
 
 
 ---------------
@@ -377,7 +385,7 @@ Span Annotation
 
 Selecting span annotations is identical to token annotation. You may be aware
 that in FoLiA span annotation elements are technically stored in a separate
-stand-off layers, but you forget this fact when composing FQL queries and can
+stand-off layers, but you can forget this fact when composing FQL queries and can
 access them right from the elements they apply to.
 
 The following query selects all named entities (of an actual rather than a
@@ -413,6 +421,16 @@ In such instances we may be most interested in obtaining the full PP::
 
  SELECT su WHERE class = "adj" IN su WHERE class = "np" IN su WHERE class = "pp" RETURN outer-target
  
+
+The **EDIT** action is not limited to editing attributes, sometimes however you
+want to alter the element of a span. A separate **SPAN** keyword (without FOR/IN) accomplishes
+this. It takes the keyword **SPAN** which behaves the same as a **FOR SPAN** target expression and represents the new scope of the span, the normal target expression represents the old scope::
+
+ EDIT entity WHERE class= "person" SPAN word.1 & word.2 FOR SPAN word.1 & word.2 & word.3
+
+**WITH** statements can be used still too, they always preceed **SPAN**::
+
+ EDIT entity WHERE class= "person" WITH class="location" SPAN word.1 & word.2 FOR SPAN word.1 & word.2 & word.3
 
 
 
