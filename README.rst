@@ -264,11 +264,11 @@ Query Response
 ---------------
 
 We have shown how to do queries but not yet said anything on how the response is
-returned. This is regulated using the **RETURN** keyword, by 
+returned. This is regulated using the **RETURN** keyword:
 
- * **RETURN auto**
- * **RETURN target**
- * **RETURN actor**
+* **RETURN auto**
+* **RETURN target**
+* **RETURN actor**
 
 The response to the query is based on the actor expression and/or the target
 expression. In *auto* mode, which is default, the most encompassing one is
