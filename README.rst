@@ -265,7 +265,7 @@ Multiple actions can be combined, all share the same target expressions::
 
  ADD pos WITH class "n" ADD lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
 
-It is also possible to nest **ADD** actions, use parentheses for this::
+It is also possible to nest actions, use parentheses for this::
 
  ADD w ID mydoc.sentence.1.word.1 (ADD t WITH text "house" ADD pos WITH class "n") FOR mydoc.sentence.1
 
