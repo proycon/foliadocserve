@@ -334,7 +334,7 @@ Note that if you set REQUEST wrong you may quickly end up with empty results.
 
 ---------------------
 Span Annotation
---------------------
+---------------------
 
 Selecting span annotations is identical to token annotation. You may be aware
 that in FoLiA span annotation elements are technically stored in a separate
@@ -431,7 +431,7 @@ In a spelling correction context::
 
 -------------------------------
 I can haz context plz?
-------------------------------
+-------------------------------
 
 We've seen that with the **FOR** keyword we can move to bigger elements in the FoLiA
 document, and with the **HAS** keyword we can move to siblings. This **HAS**
