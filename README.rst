@@ -106,12 +106,14 @@ Document Selection
 -------------------
 
 Almost FQL statements start with a document selector, represented by the
-keyword **IN**::
+keyword **USE**::
 
-    IN <namespace>/<docid> 
+    USE <namespace>/<docid> 
 
 This select what document to apply the query to, the document will be
-automatically loaded and unloaded by the server as it sees fit.
+automatically loaded and unloaded by the server as it sees fit. It can be
+prepended to any action query or used standalone, in which case it will apply o
+all subsequent queries.
 
 ---------
 Actions
@@ -120,10 +122,10 @@ Actions
 The next part of an FQL statement consists of an action verb, the following are
 available
 
-* ``<document selector> SELECT <actor expression> [<target expression>]`` - Selects an annotation
-* ``<document selector> DELETE <actor expression> [<target expression>]`` - Deletes an annotation
-* ``<document selector> EDIT <actor expression> [<target expression>]`` - Edits an existing annotation
-* ``<document selector> ADD <actor expression> <target expression>`` - Adds an annotation
+* ``SELECT <actor expression> [<target expression>]`` - Selects an annotation
+* ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
+* ``EDIT <actor expression> [<target expression>]`` - Edits an existing annotation
+* ``ADD <actor expression> <target expression>`` - Adds an annotation
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -149,16 +151,18 @@ The following attribute is also available on when the elements contains text:
 
 * **text**
 
-The **WHERE** statement requires an operator (=,!=,>,<,<=,>=), the **AND**,
+The **WHERE** statement requires an operator (=,!=,>,<,<=,>=,CONTAINS,MATCHES), the **AND**,
 **OR** and **NOT** operators are available (along with parentheses) for
 grouping and boolean logic. The operators must never be glued to the attribute
 name or the value, but have spaces left and right.
 
-We can now show some examples of full queries:
+We can now show some examples of full queries with some operators:
 
-* ``IN somegroup/mydoc SELECT pos OF "http://some.domain/some.folia.set.xml"``
-* ``IN somegroup/mydoc SELECT pos WHERE class = "n" AND annotator = "johndoe"``
-* ``IN somegroup/mydoc DELETE pos WHERE class = "n" AND annotator != "johndoe"``
+* ``SELECT pos OF "http://some.domain/some.folia.set.xml"``
+* ``SELECT pos WHERE class = "n" AND annotator = "johndoe"``
+* ``DELETE pos WHERE class = "n" AND annotator != "johndoe"``
+* ``DELETE pos WHERE class = "n" AND annotator CONTAINS "john"``
+* ``DELETE pos WHERE class = "n" AND annotator MATCHES "^john$"``
 
 The **ADD** and **EDIT** change actual attributes, this is done using the
 **WITH** keyword. It applies to all the common FoLiA attributes like the
@@ -171,7 +175,7 @@ found, and there is no WHERE clause, then it will fall back to ADD.
 
 Here is an EDIT query that changes all nouns in the document to verbs::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" AND annotator = "johndoe"
+ EDIT pos WITH class "v" WHERE class = "n" AND annotator = "johndoe"
 
 The query is fairly crude as it still lacks a *target expression*: A *target
 expression* determines what elements the actor is applied to, rather than to
@@ -184,40 +188,41 @@ The following FQL query shows how to get the part of speech tag for a
 particular word, it will actually return the full word, provided it has a
 part-of-speech annotation::
 
- IN somegroup/mydoc SELECT pos FOR mydocument.word.3 
+ SELECT pos FOR mydocument.word.3 
 
 Or for all words::
 
- IN somegroup/mydoc SELECT pos FOR w
+ SELECT pos FOR w
 
 The **ADD** action almost always requires a target expression::
 
- IN somegroup/mydoc ADD pos WITH class "n" FOR mydocument.word.3
+ ADD pos WITH class "n" FOR mydocument.word.3
 
 Multiple targets may be specified, space delimited::
 
- IN somegroup/mydoc ADD pos WITH class "n" FOR mydocument.word.3 myword.document.word.25
+ ADD pos WITH class "n" FOR mydocument.word.3 myword.document.word.25
 
 The target expression can again contain a **WHERE** filter::
 
- IN somegroup/mydoc SELECT pos FOR w WHERE class != "PUNCT"
+ SELECT pos FOR w WHERE class != "PUNCT"
 
 Target expressions, starting with the **FOR** keyword, can be nested::
 
- IN somegroup/mydoc SELECT pos FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
+ SELECT pos FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
 
-Target expressions are vital for span annotation, they keyword **SPAN** indicates
+
+Target expressions are vital for span annotation, the keyword **SPAN** indicates
 that the target is a span (to do multiple spans at once, repeat the SPAN
 keyword again)::
 
- IN somegroup/mydoc ADD entity WITH class "person" FOR SPAN mydocument.word.3 myword.document.word.25 
+ ADD entity WITH class "person" FOR SPAN mydocument.word.3 myword.document.word.25 
 
 The **HAS** keyword enables you to descend down in the document tree to
 siblings.  Consider the following example that changes the part of speech tag
 to "verb", for all occurrences of words that have lemma "fly". The parentheses
 are mandatory for a **HAS** statement::
 
- IN somegroup/mydoc EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
+ EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
 
 
 ---------
@@ -230,19 +235,19 @@ section we look at text content, which in FoLiA is an annotation element too
 
 Here we change the text of a word::
 
- IN somegroup/mydoc EDIT t WITH text = "house" FOR mydoc.word.45 
+ EDIT t WITH text = "house" FOR mydoc.word.45 
 
 Here we edit or add (recall that EDIT falls back to ADD when not found and
 there is no further selector) a lemma and check on text content::
 
- IN somegroup/mydoc EDIT lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
+ EDIT lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
 
 
 You can use WHERE text on all elements, it will cover both explicit text
 content as well as implicit text content, i.e. inferred from child elements. If
 you want to be really explicit you can do::
 
- IN somegroup/mydoc EDIT lemma WITH class "house" FOR w WHERE (t HAS text = "house")
+ EDIT lemma WITH class "house" FOR w WHERE (t HAS text = "house")
 
 
 **Advanced**:
@@ -250,52 +255,90 @@ you want to be really explicit you can do::
 Such syntax is required when covering texts with custom classes, such as
 OCRed or otherwise pre-normalised text. Consider the following OCR correction::
 
- IN somegroup/mydoc ADD t WITH text = "spell" FOR w WHERE (t HAS text = "spe11" AND class = "OCR" )
+ ADD t WITH text = "spell" FOR w WHERE (t HAS text = "spe11" AND class = "OCR" )
+
+
 
 ---------------
 Query Response
 ---------------
 
 We have shown how to do queries but not yet said anything on how the response is
-returned.
+returned. This is regulated using the **RETURN** keyword, by 
 
-If there is a target expression, those will be the elements that are returned,
-rather than the actor expression. This implies that you will always get
-context, which is most often want you want.
+ * **RETURN auto**
+ * **RETURN target**
+ * **RETURN actor**
 
-If the target expression is a SPAN expression, then the structure element that
-embeds the span will be returned, i.e. the first common structural ancestor of
-the elements in the span selection.
+The response to the query is based on the actor expression and/or the target
+expression. In *auto* mode, which is default, the most encompassing one is
+returned. This is generally the target expression.  This implies that you will
+often get context, which is most often want you want.
 
-The return type can be set using the **RETURN** keyword:
+In *target* mode, and if the target expression is a SPAN expression, then the
+structure element that embeds the span will be returned, i.e. the first common
+structural ancestor of the elements in the span selection.
 
-* **RETURN xml** - Returns FoLiA XML, the response is contained in a simple
+The return type can be set using the **FORMAT** statement:
+
+* **FORMAT xml** - Returns FoLiA XML, the response is contained in a simple
    ``<results><result/></results>`` structure. 
-* **RETURN SINGLE xml** - Like above, but returns pure unwrapped FoLiA XML and
+* **FORMAT SINGLE xml** - Like above, but returns pure unwrapped FoLiA XML and
    therefore only works if the response only contains one element. An error
    will be raised otherwise.
-* **RETURN json** - Returns JSON list
-* **RETURN SINGLE json** - Like above, but return a single element rather than
+* **FORMAT json** - Returns JSON list
+* **FORMAT SINGLE json** - Like above, but returns a single element rather than
   a list. An error will be raised if the response contains multiple.
-* **RETURN flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
+* **FORMAT flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
    containing an HTML skeleton of structure elements (key html), parsed annotations
    (key annotations). If the query returns a full FoLiA document, then the JSON object will include parsed set definitions, (key
    setdefinitions), and declarations.  
+* **FORMAT python** - Returns a Python object, can only be used when
+  directly querying the FQL library without the document server (in which case
+  it is the default along with ``RETURN actor``).
 
-As context is returns, this can be quite big, you may constrain the type of
-elements returned by using the **REQUEST** keyword, it takes the names of FoLiA XML elements. It can be used standalone so it applies to all subsequent queries::
+The **RETURN** statement may be used standalone or appended to a query, in
+which case it applies to all subsequent queries. The same applies to the
+**FORMAT** statement, though an error will be raised if distinct formats are
+requested in the same HTTP request.
+
+When context is returned, this can get quite big, you may constrain the type of
+elements returned by using the **REQUEST** keyword, it takes the names of FoLiA
+XML elements. It can be used standalone so it applies to all subsequent
+queries::
 
  REQUEST w,t,pos,lemma
 
-Or after a query::
+..or after a query::
 
- IN somegroup/mydoc SELECT pos FOR w WHERE class!="PUNCT" FOR event WHERE class="tweet" REQUEST w,pos,lemma
+ SELECT pos FOR w WHERE class!="PUNCT" FOR event WHERE class="tweet" REQUEST w,pos,lemma
 
 Two special uses of request are ``REQUEST ALL`` (default) and ``REQUEST
 NOTHING``, the latter may be useful in combination with **ADD**, **EDIT** and
 **DELETE**, by default it will return the updated state of the document.
  
 Note that if you set request wrong you may quickly end up with empty results.
+
+---------------------
+Span Annotation
+--------------------
+
+Selecting span annotations is identical to token annotation. You may be aware
+that in FoLiA span annotation elements are technically stored in a separate
+stand-off layers, but you forget this fact when composing FQL queries and can
+access them right from the elements they applies to.
+
+The following query selects all named entities (of an actual rather than a
+fictitious set for a change) of people that have the name John.
+ 
+ SELECT entity OF "https://github.com/proycon/folia/blob/master/setdefinitions/namedentities.foliaset.xml"
+ WHERE class = "person" FOR w WHERE text CONTAINS "John"
+
+The result set will contain all the words the entity applies too, as well as the entity as a whole::
+
+
+ FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
+
 
 ------------------------------
 Corrections and Alternatives
@@ -311,16 +354,16 @@ The following example is a correction but not in the FoLiA sense, it bluntly cha
 annotation of all occurrences of the word "fly" from "n" to "v", for example to
 correct erroneous tagger output::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" FOR w WHERE text = "fly"
 
 Now we do the same but as an explicit correction::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
 
 Another example in a spelling correction context, we correct the misspelling
 *concous* to *conscious**::
 
- IN somegroup/mydoc EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "concous"
+ EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "concous"
 
 The **AS CORRECTION** keyword (always in a separate block within parentheses) is used to
 initiate a correction. The correction is itself part of a set with a class that
@@ -328,17 +371,17 @@ indicates the type of correction.
 
 Alternatives are simpler, but follow the same principle::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE) FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE) FOR w WHERE text = "fly"
 
 Confidence scores are often associationed with alternatives::
 
- IN somegroup/mydoc EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
 
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
 words, but leaving it up to the user which of the suggestions to accept::
 
- IN somegroup/mydoc EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "fly"
+ EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "fly"
 
 
 In the case of alternatives and suggestions, this syntax becomes inefficient if
@@ -349,18 +392,51 @@ within the **AS** clause.
 
 An example for alternatives::
 
- IN somegroup/mydoc EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
+ EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
 
 An example for suggestions for correction::
 
- IN somegroup/mydoc EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6 SUGGEST clasS "n" WITH confidence 0.4) FOR w WHERE text = "fly"
+ EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6 SUGGEST class "n" WITH confidence 0.4) FOR w WHERE text = "fly"
 
 In a spelling correction context::
 
- IN somegroup/mydoc EDIT t (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror" SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) FOR w WHERE text = "concous"
+ EDIT t (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror" SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) FOR w WHERE text = "concous"
 
 
+-------------------------------
+I can haz context plz?
+------------------------------
 
+We've seen that with the **FOR** keyword we can move to bigger elements in the FoLiA
+document, and with the **HAS** keyword we can move to siblings. This **HAS**
+keywords supports some modifiers that give us the tools we need to peek at the context. 
+
+For instance, consider part-of-speech tagging scenario. If we have a word where the left neighbour is a determiner, and the
+right neighbour a noun, we can be pretty sure the word under our consideration (our target expression) is an adjective. Let's add the pos tag::
+
+ EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS w HAS pos WHERE class == "det") AND (NEXT w HAS pos WHERE class == "n")
+
+You may append a number directly to the **PREVIOUS**/**NEXT** modifier if you're
+interested in further context, or you may use **LEFTCONTEXT**/**RIGHTCONTEXT**/**CONTEXT** if you don't care at
+what position something occurs::
+
+ EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS2 w HAS pos WHERE class == "det") AND (PREVIOUS w HAS pos WHERE class == "adj") AND (RIGHTCONTEXT w HAS pos WHERE class == "n")
+
+Ff you are now perhaps tempted to use the FoLiA document server and FQL for searching through
+large corpora, then note that this is not a good idea. It will be prohibitively
+slow on large datasets as this requires smart indexing, which this document
+server does not provide.
+
+Other modifiers are PARENT and and ANCESTOR. PARENT will at most go one element
+up, whereas ANCESTOR will go on to the largest element::
+
+ SELECT lemma FOR w WHERE (PARENT s HAS text CONTAINS "wine") 
+
+Instead of **PARENT**, the use of a nested **FOR** is preferred and more efficient::
+
+ SELECT lemma FOR w FOR s WHERE text CONTAINS "wine" 
+
+ 
 
 
 
