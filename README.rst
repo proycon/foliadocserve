@@ -97,6 +97,9 @@ attributes in lower case.
 As a general rule, it is more efficient to do a single big query than multiple
 standalone queries.
 
+Note that for readability, queries may have been split on multiple lines
+in the presentation here, whereas in reality they should be on one.
+
 -------------------
 Global variables
 -------------------
@@ -244,7 +247,8 @@ This works with filters too, the ``&`` operator enforced a single consecutive sp
 
 Remember we can do multiple at once::
 
- ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe" SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe" 
+ SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
 
 The **HAS** keyword enables you to descend down in the document tree to
 siblings.  Consider the following example that changes the part of speech tag
@@ -312,7 +316,7 @@ you want to be really explicit you can do::
 Such syntax is required when covering texts with custom classes, such as
 OCRed or otherwise pre-normalised text. Consider the following OCR correction::
 
- ADD t WITH text = "spell" FOR w WHERE (t HAS text = "spe11" AND class = "OCR" )
+ ADD t WITH text = "spell" FOR w WHERE (t HAS text = "5pe11" AND class = "OCR" )
 
 
 ---------------
@@ -453,12 +457,14 @@ correct erroneous tagger output::
 
 Now we do the same but as an explicit correction::
 
- EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos") FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class "wrongpos") 
+ FOR w WHERE text = "fly"
 
 Another example in a spelling correction context, we correct the misspelling
 *concous* to *conscious**::
 
- EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "concous"
+ EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class "spellingerror") 
+ FOR w WHERE text = "concous"
 
 The **AS CORRECTION** keyword (always in a separate block within parentheses) is used to
 initiate a correction. The correction is itself part of a set with a class that
@@ -470,13 +476,15 @@ Alternatives are simpler, but follow the same principle::
 
 Confidence scores are often associationed with alternatives::
 
- EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
+ EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) 
+ FOR w WHERE text = "fly"
 
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
 words, but leaving it up to the user which of the suggestions to accept::
 
- EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class = "spellingerror") FOR w WHERE text = "fly"
+ EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class "spellingerror")
+ FOR w WHERE text = "fly"
 
 
 In the case of alternatives and suggestions, this syntax becomes inefficient if
@@ -487,15 +495,49 @@ within the **AS** clause.
 
 An example for alternatives::
 
- EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
+ EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 )
+ FOR w WHERE text = "fly"
 
 An example for suggestions for correction::
 
- EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6 SUGGEST class "n" WITH confidence 0.4) FOR w WHERE text = "fly"
+ EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" 
+ WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6
+ SUGGEST class "n" WITH confidence 0.4) FOR w WHERE text = "fly"
 
 In a spelling correction context::
 
- EDIT t (AS CORRECTION OF "some/correctionset" WITH class = "spellingerror" SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) FOR w WHERE text = "concous"
+ EDIT t (AS CORRECTION OF "some/correctionset" WITH class "spellingerror" 
+ SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) 
+ FOR w WHERE text = "concous"
+
+The most complex kind of correction are splits and merges. A split separates a
+structure element such as a word into multiple, a merge unifies multiple
+structure elements into one. There are separate actions for both of these::
+
+ MERGE w (ADD t WITH text "together") FOR SPAN w WHERE text="to" & w WHERE text="gether"
+
+**MERGE** is always used with the **SPAN** keyword::
+
+ SPLIT w (ADD t WITH text "each") SPLIT w (ADD t with TEXT "other") FOR w WHERE text="eachother"
+
+The **SPLIT** keyword is issued once for each part of the split. Like **ADD**,
+both MERGE and SPLIT can take assignments (**WITH**), but no filters (**WHERE**).
+
+You may have noticed that the merge and split examples were not corrections in
+the FoLiA-sense; the originals are removed and not preserved. Let's make it
+into proper corrections::
+
+ MERGE w (ADD t WITH text "together")
+ (AS CORRECTION OF "some/correctionset" WITH class "spliterror") 
+ FOR SPAN w WHERE text="to" & w WHERE text="gether"
+
+
+ SPLIT w (ADD t WITH text "each") SPLIT w (ADD t WITH text "other") 
+ (AS CORRECTION OF "some/correctionset WITH class "runonerror")
+ FOR w WHERE text="eachother"
+
+You may also use **AS SUGGESTION** here, but **AS ALTERNATIVE** and **SUGGEST**
+statements in **AS CORRECTION**, however, are not allowed with MERGE and SPLIT.
 
 
 -------------------------------
@@ -517,10 +559,11 @@ what position something occurs::
 
  EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS2 w HAS pos WHERE class == "det") AND (PREVIOUS w HAS pos WHERE class == "adj") AND (RIGHTCONTEXT w HAS pos WHERE class == "n")
 
-Ff you are now perhaps tempted to use the FoLiA document server and FQL for searching through
-large corpora, then note that this is not a good idea. It will be prohibitively
+If you are now perhaps tempted to use the FoLiA document server and FQL for searching through
+large corpora, then be advised that this is not a good idea. It will be prohibitively
 slow on large datasets as this requires smart indexing, which this document
-server does not provide.
+server does not provide. You can therefore not do this real-time, but perhaps
+only as a first step to build an actual search index.
 
 Other modifiers are PARENT and and ANCESTOR. PARENT will at most go one element
 up, whereas ANCESTOR will go on to the largest element::
