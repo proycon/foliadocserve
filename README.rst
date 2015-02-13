@@ -30,7 +30,8 @@ and are serialised back to XML files on disk when unloaded.
 
 The document server is a webservice that receives requests over HTTP. Requests
 interacting with a FoLiA document consist of statements in FoLiA Query Language
-(FQL). Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts too).
+(FQL). Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts
+too), as requested by the queries themselves.
 
 Features:
 
@@ -126,6 +127,11 @@ This select what document to apply the query to, the document will be
 automatically loaded and unloaded by the server as it sees fit. It can be
 prepended to any action query or used standalone, in which case it will apply o
 all subsequent queries.
+
+Alternatively, the **LOAD** statement loads an arbitrary file from disk, but its use
+is restricted to the command line version::
+
+ LOAD <filename> 
 
 ---------
 Actions
