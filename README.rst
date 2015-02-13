@@ -144,8 +144,8 @@ available
 * ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
 * ``EDIT <actor expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
 * ``ADD <actor expression> <assignment expression> <target expression>`` - Adds an annotation (to the target expression)
-* ``APPEND <actor expression> <assignment expression> <target expression>`` - Adds an annotation after the target expression
-* ``PREPEND <actor expression> <assignment expression> <target expression>`` - Adds an annotation before the target expression
+* ``APPEND <actor expression> <assignment expression> <target expression>`` - Inserts an annotation after the target expression
+* ``PREPEND <actor expression> <assignment expression> <target expression>`` - Inserts an annotation before the target expression
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -186,12 +186,13 @@ We can now show some examples of full queries with some operators:
 
 The **ADD** and **EDIT** change actual attributes, this is done in the
 *assignment expression* that starts with the **WITH** keyword. It applies to
-all the common FoLiA attributes like the *WHERE* keyword, but has no operator or
+all the common FoLiA attributes like the **WHERE** keyword, but has no operator or
 boolean logic, as it is a pure assignment function.
 
-SELECT and DELETE only support WHERE, EDIT supports both WHERE and WITH, and
-ADD supports only WITH. If an EDIT is done on an annotation that can not be
-found, and there is no WHERE clause, then it will fall back to ADD.
+SELECT and DELETE only support WHERE, EDIT supports both WHERE and WITH, if
+both are use they than WHERE is always before WITH. the ADD action supports only WITH. If
+an EDIT is done on an annotation that can not be found, and there is no WHERE
+clause, then it will fall back to ADD.
 
 Here is an **EDIT** query that changes all nouns in the document to verbs::
 
