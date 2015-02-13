@@ -209,9 +209,9 @@ element. The target expression also determines what elements will be returned.
 More on this in a later section.
 
 The following FQL query shows how to get the part of speech tag for a
-particular word::
+word::
 
- SELECT pos FOR mydocument.word.3 
+ SELECT pos FOR ID mydocument.word.3 
 
 Or for all words::
 
@@ -219,11 +219,11 @@ Or for all words::
 
 The **ADD** action almost always requires a target expression::
 
- ADD pos WITH class "n" FOR mydocument.word.3
+ ADD pos WITH class "n" FOR ID mydocument.word.3
 
 Multiple targets may be specified, comma delimited::
 
- ADD pos WITH class "n" FOR mydocument.word.3 , myword.document.word.25
+ ADD pos WITH class "n" FOR ID mydocument.word.3 , ID myword.document.word.25
 
 The target expression can again contain a **WHERE** filter::
 
@@ -239,7 +239,7 @@ that the target is a span (to do multiple spans at once, repeat the SPAN
 keyword again), the operator ``&`` is used for consecutive spans, whereas ``,``
 is used for disjoint spans::
 
- ADD entity WITH class "person" FOR SPAN mydocument.word.3 & myword.document.word.25 
+ ADD entity WITH class "person" FOR SPAN ID mydocument.word.3 & ID myword.document.word.25 
 
 This works with filters too, the ``&`` operator enforced a single consecutive span::
 
@@ -272,9 +272,10 @@ Multiple actions can be combined, all share the same target expressions::
 
  ADD pos WITH class "n" ADD lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
 
-It is also possible to nest actions, use parentheses for this::
+It is also possible to nest actions, use parentheses for this, the nesting
+occurs after any WHERE and WITH statements::
 
- ADD w ID mydoc.sentence.1.word.1 (ADD t WITH text "house" ADD pos WITH class "n") FOR mydoc.sentence.1
+ ADD w ID mydoc.sentence.1.word.1 (ADD t WITH text "house" ADD pos WITH class "n") FOR ID mydoc.sentence.1
 
 Though explicitly specified here, IDs will be automatically generated when necessary and not specified.
 
@@ -296,7 +297,7 @@ section we look at text content, which in FoLiA is an annotation element too
 
 Here we change the text of a word::
 
- EDIT t WITH text = "house" FOR mydoc.word.45 
+ EDIT t WITH text = "house" FOR ID mydoc.word.45 
 
 Here we edit or add (recall that EDIT falls back to ADD when not found and
 there is no further selector) a lemma and check on text content::
@@ -431,11 +432,11 @@ The **EDIT** action is not limited to editing attributes, sometimes however you
 want to alter the element of a span. A separate **SPAN** keyword (without FOR/IN) accomplishes
 this. It takes the keyword **SPAN** which behaves the same as a **FOR SPAN** target expression and represents the new scope of the span, the normal target expression represents the old scope::
 
- EDIT entity WHERE class= "person" SPAN word.1 & word.2 FOR SPAN word.1 & word.2 & word.3
+ EDIT entity WHERE class= "person" SPAN word.1 & word.2 FOR SPAN ID word.1 & ID word.2 & ID word.3
 
 **WITH** statements can be used still too, they always preceed **SPAN**::
 
- EDIT entity WHERE class= "person" WITH class="location" SPAN word.1 & word.2 FOR SPAN word.1 & word.2 & word.3
+ EDIT entity WHERE class= "person" WITH class="location" SPAN ID word.1 & ID word.2 FOR SPAN ID word.1 & ID word.2 & ID word.3
 
 
 
