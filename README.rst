@@ -35,9 +35,9 @@ interacting with a FoLiA document consist of statements in FoLiA Query Language
 Features:
 
 * versioning control support using git
-* full support for corrections
+* full support for corrections, alternatives
 * support for concurrency 
-
+* usable from the command line as well as as a webservice
 
 Note that this webservice is *NOT* intended to be publicly exposed, but rather
 to be used as a back-end by another system. The document server does support
@@ -90,8 +90,11 @@ FoLiA Query Language (FQL)
 ========================================
 
 FQL statements are separated by newlines and encoded in UTF-8. The expressions
-are case sensitive, all keywords are in upper case, all element names and attributes in lower
-case.
+are case sensitive, all keywords are in upper case, all element names and
+attributes in lower case.
+
+As a general rule, it is more efficient to do a single big query than multiple
+standalone queries.
 
 -------------------
 Global vaiables
@@ -119,13 +122,13 @@ all subsequent queries.
 Actions
 ---------
 
-The next part of an FQL statement consists of an action verb, the following are
+The core part of an FQL statement consists of an action verb, the following are
 available
 
 * ``SELECT <actor expression> [<target expression>]`` - Selects an annotation
 * ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
-* ``EDIT <actor expression> [<target expression>]`` - Edits an existing annotation
-* ``ADD <actor expression> <target expression>`` - Adds an annotation
+* ``EDIT <actor expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
+* ``ADD <actor expression> <assignment expression <target expression>`` - Adds an annotation
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -164,18 +167,18 @@ We can now show some examples of full queries with some operators:
 * ``DELETE pos WHERE class = "n" AND annotator CONTAINS "john"``
 * ``DELETE pos WHERE class = "n" AND annotator MATCHES "^john$"``
 
-The **ADD** and **EDIT** change actual attributes, this is done using the
-**WITH** keyword. It applies to all the common FoLiA attributes like the
-WHERE keyword, but has no operator or boolean logic, as it is a pure
-assignment function.
+The **ADD** and **EDIT** change actual attributes, this is done in the
+*assignment expression* that starts with the **WITH** keyword. It applies to
+all the common FoLiA attributes like the *WHERE* keyword, but has no operator or
+boolean logic, as it is a pure assignment function.
 
 SELECT and DELETE only support WHERE, EDIT supports both WHERE and WITH, and
 ADD supports only WITH. If an EDIT is done on an annotation that can not be
 found, and there is no WHERE clause, then it will fall back to ADD.
 
-Here is an EDIT query that changes all nouns in the document to verbs::
+Here is an **EDIT** query that changes all nouns in the document to verbs::
 
- EDIT pos WITH class "v" WHERE class = "n" AND annotator = "johndoe"
+ EDIT pos WHERE class = "n" WITH class "v" AND annotator = "johndoe"
 
 The query is fairly crude as it still lacks a *target expression*: A *target
 expression* determines what elements the actor is applied to, rather than to
@@ -185,8 +188,7 @@ element. The target expression also determines what elements will be returned.
 More on this in a later section.
 
 The following FQL query shows how to get the part of speech tag for a
-particular word, it will actually return the full word, provided it has a
-part-of-speech annotation::
+particular word::
 
  SELECT pos FOR mydocument.word.3 
 
@@ -198,9 +200,9 @@ The **ADD** action almost always requires a target expression::
 
  ADD pos WITH class "n" FOR mydocument.word.3
 
-Multiple targets may be specified, space delimited::
+Multiple targets may be specified, comma delimited::
 
- ADD pos WITH class "n" FOR mydocument.word.3 myword.document.word.25
+ ADD pos WITH class "n" FOR mydocument.word.3 , myword.document.word.25
 
 The target expression can again contain a **WHERE** filter::
 
@@ -213,9 +215,20 @@ Target expressions, starting with the **FOR** keyword, can be nested::
 
 Target expressions are vital for span annotation, the keyword **SPAN** indicates
 that the target is a span (to do multiple spans at once, repeat the SPAN
-keyword again)::
+keyword again), the operator ``&`` is used for consecutive spans, whereas ``,``
+is used for disjoint spans::
 
- ADD entity WITH class "person" FOR SPAN mydocument.word.3 myword.document.word.25 
+ ADD entity WITH class "person" FOR SPAN mydocument.word.3 & myword.document.word.25 
+
+This works with filters too, the ``&`` operator enforced a single consecutive span::
+
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text =
+"Doe"
+
+Remember we can do multiple at once::
+
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text =
+"Doe" SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
 
 The **HAS** keyword enables you to descend down in the document tree to
 siblings.  Consider the following example that changes the part of speech tag
@@ -266,14 +279,15 @@ Query Response
 We have shown how to do queries but not yet said anything on how the response is
 returned. This is regulated using the **RETURN** keyword:
 
-* **RETURN auto**
+* **RETURN actor** (default)
 * **RETURN target**
-* **RETURN actor**
 
-The response to the query is based on the actor expression and/or the target
-expression. In *auto* mode, which is default, the most encompassing one is
-returned. This is generally the target expression.  This implies that you will
-often get context, which is most often want you want.
+The default actor mode just returns the actor. Sometimes, however, you may want
+more context and may want to return the target expression instead. In the
+following example returning only the pos-tag would not be so interesting, you
+are most likely interested in the word to which it applies::
+
+ SELECT pos WHERE class = "n" FOR w RETURN target
 
 In *target* mode, and if the target expression is a SPAN expression, then the
 structure element that embeds the span will be returned, i.e. the first common
@@ -294,18 +308,17 @@ The return type can be set using the **FORMAT** statement:
    (key annotations). If the query returns a full FoLiA document, then the JSON object will include parsed set definitions, (key
    setdefinitions), and declarations.  
 * **FORMAT python** - Returns a Python object, can only be used when
-  directly querying the FQL library without the document server (in which case
-  it is the default along with ``RETURN actor``).
+  directly querying the FQL library without the document server 
 
 The **RETURN** statement may be used standalone or appended to a query, in
 which case it applies to all subsequent queries. The same applies to the
 **FORMAT** statement, though an error will be raised if distinct formats are
 requested in the same HTTP request.
 
-When context is returned, this can get quite big, you may constrain the type of
-elements returned by using the **REQUEST** keyword, it takes the names of FoLiA
-XML elements. It can be used standalone so it applies to all subsequent
-queries::
+When context is returned in *target* mode, this can get quite big, you may
+constrain the type of elements returned by using the **REQUEST** keyword, it
+takes the names of FoLiA XML elements. It can be used standalone so it applies
+to all subsequent queries::
 
  REQUEST w,t,pos,lemma
 
@@ -317,7 +330,7 @@ Two special uses of request are ``REQUEST ALL`` (default) and ``REQUEST
 NOTHING``, the latter may be useful in combination with **ADD**, **EDIT** and
 **DELETE**, by default it will return the updated state of the document.
  
-Note that if you set request wrong you may quickly end up with empty results.
+Note that if you set REQUEST wrong you may quickly end up with empty results.
 
 ---------------------
 Span Annotation
@@ -326,16 +339,31 @@ Span Annotation
 Selecting span annotations is identical to token annotation. You may be aware
 that in FoLiA span annotation elements are technically stored in a separate
 stand-off layers, but you forget this fact when composing FQL queries and can
-access them right from the elements they applies to.
+access them right from the elements they apply to.
 
 The following query selects all named entities (of an actual rather than a
-fictitious set for a change) of people that have the name John.
+fictitious set for a change) of people that have the name John::
  
  SELECT entity OF "https://github.com/proycon/folia/blob/master/setdefinitions/namedentities.foliaset.xml"
- WHERE class = "person" FOR w WHERE text CONTAINS "John"
+ WHERE class = "person" FOR w WHERE text = "John"
 
-The result set will contain all the words the entity applies too, as well as the entity as a whole::
+Or consider the selection of noun-phrase syntactic units (su) that contain the
+word house::
 
+ SELECT su WHERE class = "np" FOR w WHERE text CONTAINS "house"
+
+Note that if the **SPAN** keyword were used here, the selection would be
+exclusively constrained to single words "John"::
+
+ SELECT entity WHERE class = "person" FOR SPAN w WHERE text = "John"
+
+We can use that construct to select all people named John Doe for instance::
+
+ SELECT entity WHERE class = "person" FOR SPAN w WHERE text = "John" & w
+ WHERE text = "Doe"
+
+
+ 
 
 
 ------------------------------
