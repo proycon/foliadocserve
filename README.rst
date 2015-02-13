@@ -222,13 +222,11 @@ is used for disjoint spans::
 
 This works with filters too, the ``&`` operator enforced a single consecutive span::
 
- ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text =
-"Doe"
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe"
 
 Remember we can do multiple at once::
 
- ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text =
-"Doe" SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe" SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
 
 The **HAS** keyword enables you to descend down in the document tree to
 siblings.  Consider the following example that changes the part of speech tag
