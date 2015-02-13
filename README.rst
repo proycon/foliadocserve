@@ -143,7 +143,7 @@ available
 * ``SELECT <actor expression> [<target expression>]`` - Selects an annotation
 * ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
 * ``EDIT <actor expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
-* ``ADD <actor expression> <assignment expression <target expression>`` - Adds an annotation
+* ``ADD <actor expression> <assignment expression> <target expression>`` - Adds an annotation
 
 Following the action verb is the actor expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
@@ -259,6 +259,18 @@ will. The following query would most likely not yield any results because there 
 likely to be paragraphs and/or sentences between the wod and event structures::
 
  SELECT pos FOR w WHERE class != "PUNCT" IN event WHERE class = "tweet"
+
+
+Multiple actions can be combined, all share the same target expressions::
+
+ ADD pos WITH class "n" ADD lemma WITH class "house" FOR w WHERE text = "house" OR text = "houses"
+
+It is also possible to nest **ADD** actions, use parentheses for this::
+
+ ADD w ID mydoc.sentence.1.word.1 (ADD t WITH text "house" ADD pos WITH class "n") FOR mydoc.sentence.1
+
+Though explicitly specified here, IDs will be automatically generated when necessary and not specified.
+
 
 ---------
 Text
