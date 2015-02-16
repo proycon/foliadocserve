@@ -143,14 +143,14 @@ Actions
 The core part of an FQL statement consists of an action verb, the following are
 available
 
-* ``SELECT <actor expression> [<target expression>]`` - Selects an annotation
-* ``DELETE <actor expression> [<target expression>]`` - Deletes an annotation
-* ``EDIT <actor expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
-* ``ADD <actor expression> <assignment expression> <target expression>`` - Adds an annotation (to the target expression)
-* ``APPEND <actor expression> <assignment expression> <target expression>`` - Inserts an annotation after the target expression
-* ``PREPEND <actor expression> <assignment expression> <target expression>`` - Inserts an annotation before the target expression
+* ``SELECT <focus expression> [<target expression>]`` - Selects an annotation
+* ``DELETE <focus expression> [<target expression>]`` - Deletes an annotation
+* ``EDIT <focus expression> [<assignment expression>] [<target expression>]`` - Edits an existing annotation
+* ``ADD <focus expression> <assignment expression> <target expression>`` - Adds an annotation (to the target expression)
+* ``APPEND <focus expression> <assignment expression> <target expression>`` - Inserts an annotation after the target expression
+* ``PREPEND <focus expression> <assignment expression> <target expression>`` - Inserts an annotation before the target expression
 
-Following the action verb is the actor expression, this starts with an
+Following the action verb is the focus expression, this starts with an
 annotation type, which is equal to the FoLiA XML element tag. The set is
 specified using ``OF <set>`` and/or the ID with ``ID <id>``. An example:
 
@@ -161,7 +161,7 @@ if the **DEFAULTSET** statement was used earlier, then the **OF** statement can
 be omitted and will be implied and detected automatically. If it is ambiguous,
 an error will be raised (rather than applying the query regardless of set).
 
-To further filter a the actor, the expression may consist of a **WHERE** clause
+To further filter a the focus, the expression may consist of a **WHERE** clause
 that filters on one or more FoLiA attributes:
 
 * **class**
@@ -202,7 +202,7 @@ Here is an **EDIT** query that changes all nouns in the document to verbs::
  EDIT pos WHERE class = "n" WITH class "v" AND annotator = "johndoe"
 
 The query is fairly crude as it still lacks a *target expression*: A *target
-expression* determines what elements the actor is applied to, rather than to
+expression* determines what elements the focus is applied to, rather than to
 the document as a whole, it starts with the keyword **FOR** and is followed by
 either an annotation type (i.e. a FoLiA XML element tag) *or* the ID of an
 element. The target expression also determines what elements will be returned.
@@ -327,13 +327,13 @@ Query Response
 We have shown how to do queries but not yet said anything on how the response is
 returned. This is regulated using the **RETURN** keyword:
 
-* **RETURN actor** (default)
-* **RETURN parent** - Returns the parent of the actor
+* **RETURN focus** (default)
+* **RETURN parent** - Returns the parent of the focus
 * **RETURN target** or **RETURN inner-target**
 * **RETURN outer-target**
 * **RETURN ancestor-target**
 
-The default actor mode just returns the actor. Sometimes, however, you may want
+The default focus mode just returns the focus. Sometimes, however, you may want
 more context and may want to return the target expression instead. In the
 following example returning only the pos-tag would not be so interesting, you
 are most likely interested in the word to which it applies::
