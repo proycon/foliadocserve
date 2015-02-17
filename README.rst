@@ -592,7 +592,7 @@ we want an NP to the left of a PP::
 
 
 -------------------------------
-Class filter shortcut
+Shortcuts
 -------------------------------
 
 Classes are prevalent all throughout FoLiA, it is very common to want to select
@@ -616,4 +616,17 @@ expression::
 This illustrated that there are often multiple ways of obtaining the same
 result set. Due to lazy evaluation in the FQL library, there is not much
 difference performance-wise.
+
+
+Another kind of shortcut exists for setting text on structural elements. You
+can add a word with text like this::
+
+    ADD w (ADD t WITH text "hello") IN ID some.sentence
+
+Or using the shortcut::
+
+    ADD w WITH text "hello" IN ID some.sentence
+
+
+
 
