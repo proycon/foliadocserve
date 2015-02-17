@@ -591,4 +591,21 @@ we want an NP to the left of a PP::
  SELECT su WHERE class = "np" AND (NEXT su WHERE class = "pp") IN su WHERE class = "vp" RETURN target
 
 
+-------------------------------
+Class filter shortcut
+-------------------------------
+
+Classes are prevalent all throughout FoLiA, it is very common to want to select
+on classes. To select words with pos tag "n" for example you can do:: 
+
+ SELECT w WHERE (pos HAS class = "n")
+
+Because this is so common, there is a shortcut. Specify the annotation type
+directly preceeded by a colon, and a HAS statement that matches on class will automatically be constructed::
+
+ SELECT w WHERE :pos = "n"
+
+The two statements are completely equivalent.
+
+
 
