@@ -601,11 +601,19 @@ on classes. To select words with pos tag "n" for example you can do::
  SELECT w WHERE (pos HAS class = "n")
 
 Because this is so common, there is a shortcut. Specify the annotation type
-directly preceeded by a colon, and a HAS statement that matches on class will automatically be constructed::
+directly preceeded by a colon, and a HAS statement that matches on class will
+automatically be constructed::
 
  SELECT w WHERE :pos = "n"
 
 The two statements are completely equivalent.
 
+Another third alternative to obtain the same result set is to use a target
+expression::
 
+ SELECT pos WHERE class = "n" FOR w RETURN target
+
+This illustrated that there are often multiple ways of obtaining the same
+result set. Due to lazy evaluation in the FQL library, there is not much
+difference performance-wise.
 
