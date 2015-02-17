@@ -546,19 +546,21 @@ I can haz context plz?
 -------------------------------
 
 We've seen that with the **FOR** keyword we can move to bigger elements in the FoLiA
-document, and with the **HAS** keyword we can move to siblings. This **HAS**
-keywords supports some modifiers that give us the tools we need to peek at the context. 
+document, and with the **HAS** keyword we can move to siblings. There are
+several *context keywords* that give us all the tools we need to peek at the
+context. Like **HAS** expressions, these need always be enclosed in
+parentheses. 
 
 For instance, consider part-of-speech tagging scenario. If we have a word where the left neighbour is a determiner, and the
 right neighbour a noun, we can be pretty sure the word under our consideration (our target expression) is an adjective. Let's add the pos tag::
 
- EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS w HAS pos WHERE class == "det") AND (NEXT w HAS pos WHERE class == "n")
+ EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS w WHERE (pos HAS class == "det")) AND (NEXT w WHERE (pos HAS class == "n"))
 
 You may append a number directly to the **PREVIOUS**/**NEXT** modifier if you're
 interested in further context, or you may use **LEFTCONTEXT**/**RIGHTCONTEXT**/**CONTEXT** if you don't care at
 what position something occurs::
 
- EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS2 w HAS pos WHERE class == "det") AND (PREVIOUS w HAS pos WHERE class == "adj") AND (RIGHTCONTEXT w HAS pos WHERE class == "n")
+ EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS2 w WHERE (pos HAS class == "det")) AND (PREVIOUS w WHERE (pos HAS class == "adj")) AND (RIGHTCONTEXT w WHERE (pos HAS class == "n"))
 
 If you are now perhaps tempted to use the FoLiA document server and FQL for searching through
 large corpora, then be advised that this is not a good idea. It will be prohibitively
@@ -569,7 +571,7 @@ only as a first step to build an actual search index.
 Other modifiers are PARENT and and ANCESTOR. PARENT will at most go one element
 up, whereas ANCESTOR will go on to the largest element::
 
- SELECT lemma FOR w WHERE (PARENT s HAS text CONTAINS "wine") 
+ SELECT lemma FOR w WHERE (PARENT s WHERE  text CONTAINS "wine") 
 
 Instead of **PARENT**, the use of a nested **FOR** is preferred and more efficient::
 
@@ -578,15 +580,15 @@ Instead of **PARENT**, the use of a nested **FOR** is preferred and more efficie
 Let's revisit syntax trees for a bit now we know how to obtain context. Imagine
 we want an NP to the left of a PP::
 
- SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp")
+ SELECT su WHERE class = "np" AND (NEXT su WHERE class = "pp")
 
 ... and where the whole thing is part of a VP::
 
- SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp") IN su WHERE class = "vp"
+ SELECT su WHERE class = "np" AND (NEXT su WHERE class = "pp") IN su WHERE class = "vp"
 
 ... and return that whole tree rather than just the NP we were looking for::
 
- SELECT su WHERE class = "np" AND (NEXT su HAS class = "pp") IN su WHERE class = "vp" RETURN target
+ SELECT su WHERE class = "np" AND (NEXT su WHERE class = "pp") IN su WHERE class = "vp" RETURN target
 
 
 
