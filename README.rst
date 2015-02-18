@@ -548,7 +548,7 @@ The following two statements are identical::
 
 But the latter gives you the flexibility to specify multiple alternatives at once::
 
- EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 )
+ EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4)
  FOR w WHERE text = "fly"
 
 A similar example for suggestions for correction, using the **SUGGEST**
