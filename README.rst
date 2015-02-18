@@ -480,26 +480,79 @@ Confidence scores are often associationed with alternatives::
  EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) 
  FOR w WHERE text = "fly"
 
+The **AS** clause is also used to select alternatives rather than the
+authoritative form, this will get all alternative pos tags for words with the
+text "fly"::
+
+ SELECT pos (AS ALTERNATIVE) FOR w WHERE text = "fly"
+
+If you want the authoritative tag as well, you can chain the actions. The
+same target expression (FOR..) always applies to all chained actions, but the AS clause
+applies only to the action in the scope of which it appears::
+ 
+ SELECT pos SELECT pos (AS ALTERNATIVE) FOR w WHERE text = "fly"
+
+Filters on the alternative themselves may be applied as expected using the WHERE clause::
+
+ SELECT pos (AS ALTERNATIVE WHERE confidence > 0.6) FOR w WHERE text = "fly"
+
+Note that filtering on the attributes of the annotation itself is outside of the scope of
+the AS clause::
+
+ SELECT pos WHERE class = "n" (AS ALTERNATIVE WHERE confidence > 0.6) FOR w WHERE text = "fly"
+
+Corrections by definition are authoritative, so no special syntax is needed to
+obtain them. Assuming the part of speech tag is corrected, this will
+correctly obtain it, no AS clause is necessary::
+
+ SELECT pos FOR w WHERE text = "fly"
+
+Adding **AS CORRECTION** will only enforce to return those that were actually
+corrected:
+
+ SELECT pos (AS CORRECTION) FOR w WHERE text = "fly"
+
+However, if you want to obtain the original prior to correction, you can do so
+using **AS ORIGINAL**::
+
+ SELECT pos (AS ORIGINAL) FOR w WHERE text = "fly"
+
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
-words, but leaving it up to the user which of the suggestions to accept::
+words, but leaving it up to the user which of the suggestions to accept.
+Suggestions are not authoritative and can be obtained in a similar fashion
+using the **AS SUGGESTION** keyword::
+
+ SELECT pos (AS SUGGESTION) FOR w WHERE text = "fly"
+
+Note that **AS SUGGESTION/CORRECTION/ORIGINAL** may all take the **OF** keyword to
+specify the correction set, they may also take a **WHERE** clause to filter::
+
+ SELECT t (AS CORRECTION OF "some/correctionset" WHERE class "confusible") FOR w 
+
+To add a suggestion, **AS SUGGESTION** is used as follows::
 
  EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class "spellingerror")
  FOR w WHERE text = "fly"
 
-
 In the case of alternatives and suggestions, this syntax becomes inefficient if
 you want to add muliple alternatives or suggestions at once, as you'd have to
 repeat the query for each. Therefore, FQL allows you to omit the **WITH**
-statement and replace it with the **ALTERNATIVE** or **SUGGEST** statement
+statement in the action clause and replace it within the **ALTERNATIVE** or **SUGGEST** statement
 within the **AS** clause.
 
-An example for alternatives::
+The following two statements are identical::
+
+ EDIT pos WHERE class = "n" WITH class "v" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
+ EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6) FOR w WHERE text = "fly"
+
+But the latter gives you the flexibility to specify multiple alternatives at once::
 
  EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 )
  FOR w WHERE text = "fly"
 
-An example for suggestions for correction::
+A similar example for suggestions for correction, using the **SUGGEST**
+keyword::
 
  EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" 
  WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6
