@@ -554,11 +554,6 @@ specify the correction set, they may also take a **WHERE** clause to filter::
 
  SELECT t (AS CORRECTION OF "some/correctionset" WHERE class "confusible") FOR w 
 
-To add a suggestion, **AS SUGGESTION** is used as follows::
-
- EDIT t WITH text "conscious" (AS SUGGESTION OF "some/correctionset" WITH class "spellingerror")
- FOR w WHERE text = "fly"
-
 In the case of alternatives and suggestions, this syntax becomes inefficient if
 you want to add muliple alternatives or suggestions at once, as you'd have to
 repeat the query for each. Therefore, FQL allows you to omit the **WITH**
