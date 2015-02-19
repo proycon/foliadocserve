@@ -157,6 +157,9 @@ presentation.
 
 The **WITH** clause is optional, the set following the **OF** keyword is mandatory.
 
+Declarations may be chained, i.e. multiple **DECLARE** statements may be issued
+on one line, as well as prepended to action statements (see next section).
+
 ---------
 Actions
 ---------
