@@ -532,56 +532,72 @@ correctly obtain it, no AS clause is necessary::
  SELECT pos FOR w WHERE text = "fly"
 
 Adding **AS CORRECTION** will only enforce to return those that were actually
-corrected:
+corrected::
 
  SELECT pos (AS CORRECTION) FOR w WHERE text = "fly"
 
 However, if you want to obtain the original prior to correction, you can do so
-using **AS ORIGINAL**::
+using **AS CORRECTION ORIGINAL**::
 
- SELECT pos (AS ORIGINAL) FOR w WHERE text = "fly"
+ SELECT pos (AS CORRECTION ORIGINAL) FOR w WHERE text = "fly"
 
 FoLiA does not just distinguish corrections, but also supports suggestions for
 correction. Envision a spelling checker suggesting output for misspelled
 words, but leaving it up to the user which of the suggestions to accept.
 Suggestions are not authoritative and can be obtained in a similar fashion
-using the **AS SUGGESTION** keyword::
+by using the **SUGGESTION** keyword::
 
- SELECT pos (AS SUGGESTION) FOR w WHERE text = "fly"
+ SELECT pos (AS CORRECTION SUGGESTION) FOR w WHERE text = "fly"
 
-Note that **AS SUGGESTION/CORRECTION/ORIGINAL** may all take the **OF** keyword to
+Note that **AS CORRECTION** may take the **OF** keyword to
 specify the correction set, they may also take a **WHERE** clause to filter::
 
- SELECT t (AS CORRECTION OF "some/correctionset" WHERE class "confusible") FOR w 
+ SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible") FOR w 
 
-In the case of alternatives and suggestions, this syntax becomes inefficient if
-you want to add muliple alternatives or suggestions at once, as you'd have to
-repeat the query for each. Therefore, FQL allows you to omit the **WITH**
-statement in the action clause and replace it within the **ALTERNATIVE** or **SUGGEST** statement
-within the **AS** clause.
+The **SUGGESTION** keyword can take a WHERE filter too::
 
-The following two statements are identical::
+ SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible" SUGGESTION WHERE confidence > 0.5) FOR w 
+
+To add a suggestion for correction rather than an actual authoritative
+correction, you can do::
+
+  EDIT pos WITH "n" (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION) FOR w ID some.word.1
+
+Attributes associated with the suggestion can be set with a **WITH** statement
+after the correction::
+
+  EDIT pos WITH "n" (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION WITH confidence 0.8) FOR w ID some.word.1
+
+FQL also supports different for this very same expression, moving the WITH
+expression in the main action to within the AS clause, directly following the
+**SUGGESTION** keyword (before the WITH statement that applies to the
+suggestion as a whole). The following is equivalent to the example above::
+
+  EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection"
+  SUGGESTION class "n" WITH confidence 0.8) FOR w ID some.word.1
+
+The point of this different syntax is that it now allows you to specify
+multiple suggestions at once by just adding another **SUGGESTION** clause::
+
+  EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection"
+  SUGGESTION class "n" WITH confidence 0.8
+  SUGGESTION class "v" wITH confidence 0.2) FOR w ID some.word.1
+
+Another example in a spelling correction context::
+
+ EDIT t (AS CORRECTION OF "some/correctionset" WITH class "spellingerror" 
+ SUGGESTION text "conscious" WITH confidence 0.8 SUGGESTION text "couscous" WITH confidence 0.2) 
+ FOR w WHERE text = "concous"
+
+A similar construction is available for alternatives as well, the following two statements are identical::
 
  EDIT pos WHERE class = "n" WITH class "v" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
  EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6) FOR w WHERE text = "fly"
 
-But the latter gives you the flexibility to specify multiple alternatives at once::
+Specifying multiple alternatives is then done by simply adding enother
+**ALTERNATIVE** clause::
 
- EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4)
- FOR w WHERE text = "fly"
-
-A similar example for suggestions for correction, using the **SUGGEST**
-keyword::
-
- EDIT pos WHERE class = "n" (AS CORRECTION OF "some/correctionset" 
- WITH class = "wrongpos" SUGGEST class "v" WITH confidence 0.6
- SUGGEST class "n" WITH confidence 0.4) FOR w WHERE text = "fly"
-
-In a spelling correction context::
-
- EDIT t (AS CORRECTION OF "some/correctionset" WITH class "spellingerror" 
- SUGGEST text "conscious" WITH confidence 0.8 SUGGEST text "couscous" WITH confidence 0.2) 
- FOR w WHERE text = "concous"
+ EDIT pos (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
 
 The most complex kind of correction are splits and merges. A split separates a
 structure element such as a word into multiple, a merge unifies multiple
