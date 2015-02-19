@@ -136,6 +136,27 @@ is restricted to the command line version::
 
  LOAD <filename> 
 
+-----------------
+Declarations
+-----------------
+
+All annotation types in FoLiA need to be declared. FQL does this for you
+automatically. If you make an edit of a previously undeclared set, it will be
+declared for you. These default declarations will never assign default
+annotators or annotator types.
+
+Explicit declarations are possible using the ``DECLARE`` keyword followed by
+the annotation type you want to declare, this represented the tag of the
+respective FoLiA annotation element::
+
+    DECLARE entity OF "https://github.com/proycon/folia/blob/master/setdefinitions/namedentities.foliaset.xml"
+    WITH annotator = "me" annotatortype = "manual"
+
+Note that the statement must be on one single line, it is split here only for ease of
+presentation.
+
+The **WITH** clause is optional, the set following the **OF** keyword is mandatory.
+
 ---------
 Actions
 ---------
