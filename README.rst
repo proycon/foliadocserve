@@ -561,23 +561,20 @@ The **SUGGESTION** keyword can take a WHERE filter too::
 To add a suggestion for correction rather than an actual authoritative
 correction, you can do::
 
-  EDIT pos WITH "n" (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION) FOR w ID some.word.1
+  EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION class "n") FOR w ID some.word.1
 
-Attributes associated with the suggestion can be set with a **WITH** statement
-after the correction::
+The absence of a WITH statement in the action clause indicates that this is purely a suggestion. The actual suggestion follows the **SUGGESTION** keyword.
 
-  EDIT pos WITH "n" (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION WITH confidence 0.8) FOR w ID some.word.1
+Any attributes associated with the suggestion can be set with a **WITH** statement after the suggestion::
 
-FQL also supports different for this very same expression, moving the WITH
-expression in the main action to within the AS clause, directly following the
-**SUGGESTION** keyword (before the WITH statement that applies to the
-suggestion as a whole). The following is equivalent to the example above::
+  EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION class "n" WITH confidence 0.8) FOR w ID some.word.1
 
-  EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection"
-  SUGGESTION class "n" WITH confidence 0.8) FOR w ID some.word.1
+Even if a **WITH** statement is present for the action, making it an actual
+correction, you can still add suggestions::
 
-The point of this different syntax is that it now allows you to specify
-multiple suggestions at once by just adding another **SUGGESTION** clause::
+  EDIT pos WITH class "v" (AS CORRECTION OF "some/correctionset" WITH class "poscorrection" SUGGESTION class "n" WITH confidence 0.8) FOR w ID some.word.1
+
+The **SUGGESTION** keyword can be chaineed to add multiple suggestions at once::
 
   EDIT pos (AS CORRECTION OF "some/correctionset" WITH class "poscorrection"
   SUGGESTION class "n" WITH confidence 0.8
@@ -589,7 +586,8 @@ Another example in a spelling correction context::
  SUGGESTION text "conscious" WITH confidence 0.8 SUGGESTION text "couscous" WITH confidence 0.2) 
  FOR w WHERE text = "concous"
 
-A similar construction is available for alternatives as well, the following two statements are identical::
+A similar construction is available for alternatives as well. First we
+establish that the following two statements are identical::
 
  EDIT pos WHERE class = "n" WITH class "v" (AS ALTERNATIVE WITH confidence 0.6) FOR w WHERE text = "fly"
  EDIT pos WHERE class = "n" (AS ALTERNATIVE class "v" WITH confidence 0.6) FOR w WHERE text = "fly"
