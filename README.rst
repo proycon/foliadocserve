@@ -651,9 +651,9 @@ And a split::
  FOR w WHERE text="eachother"
 
 To make this into a suggestion for correction instead, use the **SUGGESTION**
-folloed by  **SUBSTITUTE**,  inside the **AS** clause, where each substitute statement has to be enclosed in parentheses::
+folloed by  **SUBSTITUTE**,  inside the **AS** clause, where the chain of substitute statements has to be enclosed in parentheses::
 
- SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION (SUBTITUTE w WITH text "each") (SUBSTITUTE w WITH text "other") )
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION (SUBTITUTE w WITH text "each" SUBSTITUTE w WITH text "other") )
  FOR w WHERE text="eachother"
 
 
