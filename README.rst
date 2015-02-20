@@ -94,11 +94,16 @@ FQL statements are separated by newlines and encoded in UTF-8. The expressions
 are case sensitive, all keywords are in upper case, all element names and
 attributes in lower case.
 
+FQL is also strict about parentheses, they are generally either required or forbidden
+for an expression. Parentheses usually indicate a sub-expression, and it is also used in
+boolean logic.
+
 As a general rule, it is more efficient to do a single big query than multiple
 standalone queries.
 
 Note that for readability, queries may have been split on multiple lines
 in the presentation here, whereas in reality they should be on one.
+
 
 -------------------
 Global variables
@@ -646,9 +651,9 @@ And a split::
  FOR w WHERE text="eachother"
 
 To make this into a suggestion for correction instead, use the **SUGGESTION**
-keyword like with **SUBSTITUTE**, and move the substitution inside the **AS** clause::
+folloed by  **SUBSTITUTE**,  inside the **AS** clause, where each substitute statement has to be enclosed in parentheses::
 
- SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION SUBTITUTE w (ADD t WITH text "each") SUBSTITUTE w (ADD t WITH text "other") )
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION (SUBTITUTE w WITH text "each") (SUBSTITUTE w WITH text "other") )
  FOR w WHERE text="eachother"
 
 
