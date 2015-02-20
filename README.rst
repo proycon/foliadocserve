@@ -599,6 +599,17 @@ Specifying multiple alternatives is then done by simply adding enother
 
  EDIT pos (AS ALTERNATIVE class "v" WITH confidence 0.6 ALTERNATIVE class "n" WITH confidence 0.4 ) FOR w WHERE text = "fly"
 
+When a correction is made on an element, all annotations below it (recursively) are left
+intact, i.e. they are copied from the original element to the new correct element. The
+same applies to suggestions.  Moreover, all references to the original element,
+from for instance span annotation elements, will be made into references to the
+new corrected elements. 
+
+This is not always what you want, if you want the correction not to have any
+annotations inherited from the original, simply use **AS BARE CORRECTION** instead of **AS
+CORRECTION**. 
+
+
 The most complex kind of correction are splits and merges. A split separates a
 structure element such as a word into multiple, a merge unifies multiple
 structure elements into one. There are separate actions for both of these::
@@ -607,9 +618,9 @@ structure elements into one. There are separate actions for both of these::
 
 **MERGE** is always used with the **SPAN** keyword::
 
- SPLIT w (ADD t WITH text "each") SPLIT w (ADD t with TEXT "other") FOR w WHERE text="eachother"
+ SPLIT w (ADD t WITH text "each") & w (ADD t with TEXT "other") FOR w WHERE text="eachother"
 
-The **SPLIT** keyword is issued once for each part of the split. Like **ADD**,
+The **SPLIT** keyword is issued once and the **&** operators concatenates each part of the split. Like **ADD**,
 both MERGE and SPLIT can take assignments (**WITH**), but no filters (**WHERE**).
 
 You may have noticed that the merge and split examples were not corrections in
@@ -621,12 +632,16 @@ into proper corrections::
  FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
 
- SPLIT w (ADD t WITH text "each") SPLIT w (ADD t WITH text "other") 
+ SPLIT w (ADD t WITH text "each") & w (ADD t WITH text "other") 
  (AS CORRECTION OF "some/correctionset WITH class "runonerror")
  FOR w WHERE text="eachother"
 
-You may also use **AS SUGGESTION** here, but **AS ALTERNATIVE** and **SUGGEST**
-statements in **AS CORRECTION**, however, are not allowed with MERGE and SPLIT.
+To make this into a suggestion for correction instead, use the **SUGGESTION**
+keyword like with **EDIT**::
+
+ SPLIT (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION w (ADD t WITH text "each") & w (ADD t WITH text "other") )
+ FOR w WHERE text="eachother"
+
 
 
 -------------------------------
