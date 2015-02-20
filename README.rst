@@ -614,39 +614,42 @@ You can also use **AS CORRECTION** with **ADD** and **DELETE**.
 
 The most complex kind of corrections are splits and merges. A split separates a
 structure element such as a word into multiple, a merge unifies multiple
-structure elements into one. There are separate actions for both of these::
+structure elements into one. 
 
- MERGE w WITH text "together" FOR SPAN w WHERE text="to" & w WHERE text="gether"
+In FQL, this is achieved through substitution, using the action **SUBSTITUTE**::
 
-Subactions are common with MERGEs, the following is equivalent to the above::
+ SUBSTITUTE w WITH text "together" FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
- MERGE w (ADD t WITH text "together") FOR SPAN w WHERE text="to" & w WHERE text="gether"
+Subactions are common with SUBSTITUTE, the following is equivalent to the above::
 
-Note that **MERGE** is always used with the **SPAN** keyword. **SPLIT** is repeated for each part that makes up the split::
+ SUBSTITUTE w (ADD t WITH text "together") FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
- SPLIT w WITH text "each" SPLIT w WITH TEXT "other" FOR w WHERE text="eachother"
+To perform a split into multiple substitutes, simply chain the SUBSTITUTE
+clause::
 
-Like **ADD**, both MERGE and SPLIT can take assignments (**WITH**), but no filters (**WHERE**).
+ SUBSTITUTE w WITH text "each" SUBSTITUTE w WITH TEXT "other" FOR w WHERE text="eachother"
+
+Like **ADD**, both **SUBSTITUTE** may take assignments (**WITH**), but no filters (**WHERE**).
 
 You may have noticed that the merge and split examples were not corrections in
 the FoLiA-sense; the originals are removed and not preserved. Let's make it
 into proper corrections::
 
- MERGE w (ADD t WITH text "together")
+ SUBSTITUTE w WITH text "together" 
  (AS CORRECTION OF "some/correctionset" WITH class "spliterror") 
  FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
+And a split::
 
- SPLIT w (ADD t WITH text "each") & w (ADD t WITH text "other") 
+ SUBSTITUTE w WITH text "each" SUBSTITUTE w WITH text "other" 
  (AS CORRECTION OF "some/correctionset WITH class "runonerror")
  FOR w WHERE text="eachother"
 
 To make this into a suggestion for correction instead, use the **SUGGESTION**
-keyword like with **EDIT**::
+keyword like with **SUBSTITUTE**, and move the substitution inside the **AS** clause::
 
- SPLIT (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION w (ADD t WITH text "each") & w (ADD t WITH text "other") )
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION SUBTITUTE w (ADD t WITH text "each") SUBSTITUTE w (ADD t WITH text "other") )
  FOR w WHERE text="eachother"
-
 
 
 -------------------------------
