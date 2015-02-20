@@ -609,19 +609,24 @@ This is not always what you want, if you want the correction not to have any
 annotations inherited from the original, simply use **AS BARE CORRECTION** instead of **AS
 CORRECTION**. 
 
+You can also use **AS CORRECTION** with **ADD** and **DELETE**. 
 
-The most complex kind of correction are splits and merges. A split separates a
+
+The most complex kind of corrections are splits and merges. A split separates a
 structure element such as a word into multiple, a merge unifies multiple
 structure elements into one. There are separate actions for both of these::
 
+ MERGE w WITH text "together" FOR SPAN w WHERE text="to" & w WHERE text="gether"
+
+Subactions are common with MERGEs, the following is equivalent to the above::
+
  MERGE w (ADD t WITH text "together") FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
-**MERGE** is always used with the **SPAN** keyword::
+Note that **MERGE** is always used with the **SPAN** keyword. **SPLIT** is repeated for each part that makes up the split::
 
- SPLIT w (ADD t WITH text "each") & w (ADD t with TEXT "other") FOR w WHERE text="eachother"
+ SPLIT w WITH text "each" SPLIT w WITH TEXT "other" FOR w WHERE text="eachother"
 
-The **SPLIT** keyword is issued once and the **&** operators concatenates each part of the split. Like **ADD**,
-both MERGE and SPLIT can take assignments (**WITH**), but no filters (**WHERE**).
+Like **ADD**, both MERGE and SPLIT can take assignments (**WITH**), but no filters (**WHERE**).
 
 You may have noticed that the merge and split examples were not corrections in
 the FoLiA-sense; the originals are removed and not preserved. Let's make it
