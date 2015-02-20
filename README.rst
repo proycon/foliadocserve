@@ -453,10 +453,12 @@ In such instances we may be most interested in obtaining the full PP::
  
 
 The **EDIT** action is not limited to editing attributes, sometimes however you
-want to alter the element of a span. A separate **SPAN** keyword (without FOR/IN) accomplishes
-this. It takes the keyword **SPAN** which behaves the same as a **FOR SPAN** target expression and represents the new scope of the span, the normal target expression represents the old scope::
+want to alter the element of a span. A separate **SPAN** keyword (without
+FOR/IN/WITH) accomplishes this. It takes the keyword **SPAN** which behaves the
+same as a **FOR SPAN** target expression and represents the new scope of the
+span, the normal target expression represents the old scope::
 
- EDIT entity WHERE class= "person" SPAN word.1 & word.2 FOR SPAN ID word.1 & ID word.2 & ID word.3
+ EDIT entity WHERE class= "person" SPAN ID word.1 & ID word.2 FOR SPAN ID word.1 & ID word.2 & ID word.3
 
 **WITH** statements can be used still too, they always preceed **SPAN**::
 
