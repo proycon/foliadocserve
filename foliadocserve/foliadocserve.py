@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
 
+
+#---------------------------------------------------------------
+# FoLiA Document Server
+#   by Maarten van Gompel
+#   Centre for Language Studies
+#   Radboud University Nijmegen
+#   http://proycon.github.io/folia
+#   http://github.com/proycon/foliadocserve
+#   proycon AT anaproy DOT nl
+#
+# The FoLiA Document Server is a backend HTTP service to interact with
+# documents in the FoLiA format, a rich XML-based format for linguistic
+# annotation (http://proycon.github.io/folia). It provides an interface to
+# efficiently edit FoLiA documents through the FoLiA Query Language (FQL).
+#
+#   Licensed under GPLv3
+#
+#----------------------------------------------------------------
+
+
 from __future__ import print_function, unicode_literals, division, absolute_import
 import cherrypy
 import argparse
@@ -184,6 +204,12 @@ class Root:
         self.docstore = docstore
         self.workdir = args.workdir
 
+    def createsession(self,namespace,docid, sid, results):
+        if sid[-5:] != 'NOSID':
+            log("Creating session " + sid + " for " + "/".join((namespace,docid)))
+            self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
+            self.docstore.updateq[(namespace,docid)][sid] = [ result.id for result in results if result.id ]
+
     @cherrypy.expose
     def createnamespace(self, namespace):
         namepace = namespace.replace('/','').replace('..','')
@@ -198,10 +224,15 @@ class Root:
 
     @cherrypy.expose
     def query(self, namespace):
+        """Query method, all FQL queries arrive here"""
+
         if 'X-sessionid' in cherrypy.request.headers:
-            sessionid = cherrypy.request.headers['X-sessionid']
+            sid = cherrypy.request.headers['X-sessionid']
+        elif 'sid' in cherrypy.request.params:
+            sid = cherrypy.request.params['sid']
         else:
-            sessionid = 'NOSID'
+            sid = 'NOSID'
+
         if 'query' in cherrypy.request.params:
             rawqueries = cherrypy.request.params['query'].split("\n")
         else:
@@ -210,12 +241,15 @@ class Root:
 
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
+        flatargs['sid'] = sid
 
         prevdocselector = None
+        sessiondocselector = None
         for rawquery in rawqueries:
             try:
                 docselector, rawquery = parsedocumentselector(rawquery)
                 if not docselector: docselector = prevdocselector
+                if not sessiondocselector: sessiondocselector = docselector
                 query = fql.Query(rawquery)
                 if query.format == "python": query.format = "xml"
                 if query.action and not docselector:
@@ -229,6 +263,7 @@ class Root:
         results = []
         doc = None
         prevdocid = None
+        multidoc = False #are the queries over multiple distinct documents?
         for query in queries:
             try:
                 doc = self.docstore[docselector]
@@ -247,41 +282,21 @@ class Root:
         elif formats.endswith('json'):
             cherrypy.response.headers['Content-Type']= 'application/json'
 
+
         if format == "xml":
             return "<results>" + "\n".join(results) + "</results>"
         elif format == "json":
             return "[" + ",".join(results) + "]"
         elif format == "flat":
+            if sid != 'NOSID' and sessiondocselector and not multidoc:
+                self.createsession(sessiondocselector[0],sessiondocselector[1],sid, results)
             cherrypy.response.headers['Content-Type']= 'application/json'
-            if len(results) > 1:
+            if multidoc:
                 raise "{} //multidoc response, not producing results"
             elif doc:
-                response = parseresults(results, doc, **flatargs)
+                return parseresults(results, doc, **flatargs)
         else:
             return results[0]
-
-
-    ###OLD###
-
-    @cherrypy.expose
-    def getdoc(self, namespace, docid, sid):
-        namepace = namespace.replace('/','').replace('..','')
-        if sid[-5:] != 'NOSID':
-            log("Creating session " + sid + " for " + "/".join((namespace,docid)))
-            self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
-            self.docstore.updateq[(namespace,docid)][sid] = []
-        try:
-            log("Returning document " + "/".join((namespace,docid)) + " in session " + sid)
-            cherrypy.response.headers['Content-Type'] = 'application/json'
-            return json.dumps({
-                'html': gethtml(self.docstore[(namespace,docid)].data[0]),
-                'declarations': tuple(getdeclarations(self.docstore[(namespace,docid)])),
-                'annotations': tuple(getannotations(self.docstore[(namespace,docid)].data[0])),
-                'setdefinitions': getsetdefinitions(self.docstore[(namespace,docid)]),
-            }).encode('utf-8')
-        except NoSuchDocument:
-            raise cherrypy.HTTPError(404, "Document not found: " + namespace + "/" + docid)
-
 
 
     @cherrypy.expose
@@ -331,7 +346,6 @@ class Root:
 
 
 
-
     def checkexpireconcurrency(self):
         #purge old buffer
         deletelist = []
@@ -353,13 +367,8 @@ class Root:
 
 
 
-
-
-
-
-
     @cherrypy.expose
-    def poll(self, namespace, docid, sid): #TODO: REDO
+    def poll(self, namespace, docid, sid):
         if namespace == "testflat":
             return "{}" #no polling for testflat
 
@@ -369,13 +378,13 @@ class Root:
             self.docstore.updateq[(namespace,docid)][sid] = []
             if ids:
                 cherrypy.log("Succesful poll from session " + sid + " for " + "/".join((namespace,docid)) + ", returning IDs: " + " ".join(ids))
-                return self.getelements(namespace,docid, ids, sid)
+                doc = self.docstore[(namespace,docid)]
+                results = [ doc[id] for id in ids if id in doc ]
+                return parseresults(results, doc, **{'sid':sid})
             else:
                 return "{}"
         else:
             return "{}"
-
-
 
 
 
@@ -385,8 +394,6 @@ class Root:
         return json.dumps({
                 'namespaces': namespaces
         })
-
-
 
     @cherrypy.expose
     def documents(self, namespace):
