@@ -13,16 +13,12 @@ import sys
 import traceback
 from copy import copy
 from collections import defaultdict
-from pynlpl.formats import folia
+from pynlpl.formats import folia, fql
 
 def fake_wait_for_occupied_port(host, port): return
 
 class NoSuchDocument(Exception):
     pass
-
-class FQLParseError(Exception):
-    pass
-
 
 logfile = None
 def log(msg):
@@ -371,624 +367,27 @@ def parseassignments(words,i):
 
 
 
-def parsequery(query, data = {}):
-    """Parse FQL query"""
-
-    log("Parsing FQL query: " + query)
-
-    words = []
-    begin = 0
-    inquote = False
-    query += ' '
-    for i, c in enumerate(query):
-        if c == '"':
-            if not inquote:
-                inquote = True
-                begin = i+1
-            else:
-                inquote = False
-        elif c == ' ' and not inquote:
-            if i > 1 and query[i-1] == '"':
-                word = query[begin:i-1]
-            else:
-                word = query[begin:i]
-            words.append(word)
-            begin = i +1
 
 
-
-    mode = None
-    skipwords = 0
-    endclause = None
-
-    edit = {'editform':'direct', 'targets':[], 'actor': {}, 'assignments': {}, 'datetime': datetime.datetime.now() }
-
-    for i, word in enumerate(words):
-        if skipwords:
-            skipwords = skipwords - 1
-            continue
-
-        if not (endclause is None) and i >= endclause:
-            endclause = None
-
-
-        if word in ['IN','ADD','EDIT','DELETE','WITH','FOR','AS']:
-            #end mode
-            if mode is None:
-                if word != "IN":
-                    raise FQLParseError("FQL Query must start with IN statement!")
-
-            #start new mode
-            mode = word
-            if word == "AS":
-                endclause = None
-                for j in range(i+1,len(words) -1):
-                    if words[j] == ',':
-                        endclause = j - 1
-                #if endclause is None:
-                #    raise FQLParseError("AS clause must end in comma, detached from any words, none found")
-
-                if words[i+1] == 'CORRECTION':
-                    edit['editform'] = 'correction'
-                    if words[i+2] != "OF":
-                        raise FQLParseError("Expected AS CORRECTION OF $set")
-                    edit['correctionset'] = words[i+3]
-                    skipwords = 3
-                    if words[i+4] == 'WITH':
-                        skipwords = 4
-                        correction_assignments,extraskipwords = parseassignments(words, i+5)
-                        if 'class' in correction_assignments:
-                            edit['correctionclass'] = correction_assignments['class']
-                        skipwords += extraskipwords
-                elif words[i+1] == 'ALTERNATIVE':
-                    edit['editform'] = 'alternative'
-                    skipwords = 1
-                else:
-                    raise FQLParseError("Expected CORRECTION/ALTERNATIVE after AS")
-            elif mode in [ 'ADD','EDIT','DELETE']:
-                edit['action'] = mode.lower()
-
-
-                actor_annotationtype, actor_set, actor_id, skipwords = parseactor(words,i)
-                if actor_annotationtype:
-                    edit['actor']['type'] = actor_annotationtype
-                if actor_set:
-                    edit['actor']['set'] = actor_set
-                if actor_id:
-                    edit['actor']['id'] = actor_id
-
-                if mode == 'ADD':
-                    edit['editform'] = "new"
-                elif mode == 'DELETE':
-                    if edit['actor']['type'] is folia.TextContent:
-                        edit['assignments']['text'] = "" #empty text for deletion of entire structural element!
-                    else:
-                        edit['assignments']['class'] = "" #empty class for deletion of annotation
-            elif mode == 'WITH':
-                assignments,skipwords = parseassignments(words, i+1)
-                for key, value in assignments.items():
-                    edit['assignments'][key] = value
-
-        elif mode == 'IN':
+def getdocumentselector(query):
+    if query.startswith("USE "):
+        end = query[4:].index(' ') + 4
+        if end >= 0:
             try:
-                namespace, docid = word.split('/',1)
+                namespace,docid = query[4:end].split("/")
             except:
-                raise FQLParseError("Expected \"namespace/documentID\" after IN statement")
-            if not (namespace,docid) in data:
-                data[(namespace, docid)] = []
-        elif mode == 'FOR':
-            edit['targets'].append(word)
+                raise fql.SyntaxError("USE statement takes namespace/docid pair")
+            return (namespace,docid), query[end+1:]
         else:
-            raise FQLParseError("Expected statement, got " + word)
-
-
-    if len(data) == 0:
-        raise FQLParseError("No documents specified in IN statement!")
-    if not 'action' in edit or not edit['action']:
-        raise FQLParseError("Expected action statement EDIT, ADD or DELETE")
-    if not 'targets' in edit or len(edit['targets']) == 0:
-        if not 'id' in edit['actor']:
-            raise FQLParseError("No targets found (no FOR statement?), but no ID was provided either on the actor")
-    if not 'type' in edit['actor'] or not edit['actor']['type']:
-        raise FQLParseError("Expected action statement EDIT, ADD or DELETE")
-
-    log("  Parse result: " + repr(edit))
-
-    for namespace, doc in data:
-        data[(namespace,doc)].append(edit)
-
-    return data
-
-
-
-
-
-def doannotation(doc, data):
-    response = {'returnelementids': []}
-    log("Received " + str(len(data['edits'])) + " edits")
-
-
-    for edit in data['edits']:
-        if 'targets' in edit and edit['targets']:
-            ElementClass =  doc[edit['targets'][0]].__class__ #folia.XML2CLASS[doc[data['elementid']].XMLTAG]
-        else:
-            ElementClass = folia.Word #default to word
-
-
-        assert 'action' in edit
-        assert 'targets' in edit
-        assert 'actor' in edit
-        assert 'assignments' in edit
-        assert 'type' in edit['actor']
-        Class = folia.XML2CLASS[edit['actor']['type']]
-        annotationtype = Class.ANNOTATIONTYPE
-        annotation = None
-
-
-        if not 'editform' in edit:
-            edit['editform'] = 'direct'
-
-
-
-        if len(edit['targets']) > 1:
-            commonancestors = None
-            for targetid in edit['targets']:
-                try:
-                    target = doc[targetid]
-                except:
-                    response['error'] = "Target element " + targetid + " does not exist!"
-                    return response
-                ancestors = list( ( x.id for x in target.ancestors() if isinstance(x,folia.AbstractStructureElement) and x.id ) )
-                if commonancestors is None:
-                    commonancestors = copy(ancestors)
-                else:
-                    removeancestors = []
-                    for a in commonancestors:
-                        if not (a in ancestors):
-                            removeancestors.append(a)
-                    for a in removeancestors:
-                        commonancestors.remove(a)
-            if commonancestors:
-                commonancestor = commonancestors[0]
-                log("Common ancestor as return element: "+ commonancestor )
-                if not commonancestor in response['returnelementids']:
-                    response['returnelementids'].append(commonancestor)
-        elif edit['targets']:
-            for targetid in edit['targets']:
-                try:
-                    target = doc[targetid]
-                    if not target.id in response['returnelementids']:
-                        response['returnelementids'].append(target.id)
-                except:
-                    response['error'] = "Target element " + targetid + " does not exist!"
-                    return response
-            commonancestor = target.ancestor(folia.AbstractStructureElement).id
-        else:
-            commonancestor = doc.data[0]
-
-
-
-
-
-        if not 'set' in edit['actor'] or edit['actor']['set'] == 'null':
-            if 'id' in edit['actor'] and edit['actor']['id']:
-                edit['actor']['set'] = doc[edit['actor']['id']].set
-            else:
-                #see declaration
-                found = 0
-                for annotationtype2, set2 in doc.annotations:
-                    if annotationtype2 == annotationtype:
-                        found += 1
-                        edit['actor']['set'] = set2
-                        if found > 1:
-                            response['error'] = "No set was specified for type " + edit['actor']['type'] + ", but the document has multiple ambiguous options, unable to resolve automatically"
-                            return response
-                if not found:
-                    edit['actor']['set'] = 'undefined'
-
-        if edit['actor']['set'] != 'undefined':
-            #declare if undeclared
-            if not doc.declared(annotationtype,edit['actor']['set']):
-                doc.declare(annotationtype, edit['actor']['set'])
-
-        log("Processing edit: "+ str(repr(edit)) )
-        log("Class=" + Class.__name__ )
-
-        if edit['action'] == 'delete' and 'id' in edit['actor']:
-            #delete the element with the specified ID
-            target = doc[edit['actor']['id']]
-            if edit['editform'] == 'direct':
-                response['log'] = "Deletion of " + target.id + ", by " + data['annotator']
-            elif edit['editform'] == 'correction':
-                response['log'] = "Deletion of " + target.id + " '" + target.text() + "' (correction " + edit['correctionclass']+"), by " + data['annotator']
-            else:
-                raise Exception("Invalid editform for DELETE" + edit['editform'])
-            log(response['log'])
-
-            #undo any space=False prior to our deleted entry
             try:
-                index = target.parent.data.index(target)
-            except ValueError:
-                index = 0
-            if index > 0 and isinstance(target.parent.data[index-1], folia.Word) and not target.parent.data[index-1].space:
-                target.parent.data[index-1].space = True
+                namespace,docid = query[4:end].split("/")
+            except:
+                raise fql.SyntaxError("USE statement takes namespace/docid pair")
+            return (namespace,docid), ""
+    return None, query
 
-            if edit['editform'] == 'direct':
-                #we have a text deletion!
-                p = target.parent
-                p.remove(target)
-                if not p.id in response['returnelementids']:
-                    response['returnelementids'].append( p.id )
-            elif edit['editform'] == 'correction':
-                #we have a deletion as a correction!
-                if Class is folia.Word:
-                    if isinstance(target, folia.Word):
-                        p = target.ancestor(folia.AbstractStructureElement)
-                        p.deleteword(target,set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime']) #does correction
-                else:
-                    #probably a span annotation
-                    p = target.parent
-                    p.correct(original=target, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
+def parseresults(results):
 
-                if not p.id in response['returnelementids']:
-                    response['returnelementids'].append(p.id )
-
-        elif issubclass(Class, folia.TextContent): ################### EDIT OF TEXT CONTENT #######################################
-            #Text Content, each target will get a copy
-            if len(edit['targets']) > 1 and 'merge' in edit['assignments'] and edit['assignments']['merge']:
-                #merge elements
-
-                log("Text edit of multiple elements")
-                targets = []
-                ancestor = None
-                for target in edit['targets']:
-                    targets.append( doc[target] )
-                    if not ancestor:
-                        ancestor = doc[target].ancestor(folia.AbstractStructureElement)
-                        index = ancestor.data.index(doc[target]) #TODO, can't find if already part of a correction
-                    elif ancestor != doc[target].ancestor(folia.AbstractStructureElement):
-                        response['error'] = "Unable to merge words, they are not in the same structure element"
-                        return response
-
-                if edit['editform'] in ('direct','new'):
-                    #remove all targets and insert a new one in its place
-                    response['log'] = "Merging/replacing words, by " + data['annotator']
-                    log(response['log'])
-                    for target in targets:
-                        ancestor.remove(target)
-                    ancestor.insert(index, ElementClass(doc, folia.TextContent(doc, edit['assignments']['text'], set=edit['actor']['set']), generate_id_in=ancestor ) )
-                elif edit['editform'] == 'correction':
-                    response['log'] = "Merging/replacing words (correction " + edit['correctionclass'] + "), by " + data['annotator']
-                    log(response['log'])
-                    ancestor.mergewords(ElementClass(doc, folia.TextContent(doc, edit['assignments']['text'], set=edit['actor']['set']), generate_id_in=ancestor), *targets, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'] )
-                elif edit['editform'] == 'alternative':
-                    raise NotImplementedError
-
-
-                if not ancestor.id in response['returnelementids']:
-                    response['returnelementids'].append( ancestor.id )
-            else:
-
-                for targetid in edit['targets']:
-                    try:
-                        target = doc[targetid]
-                    except:
-                        response['error'] = "Target element " + targetid + " does not exist!"
-                        return response
-
-                    log("Text edit of " + target.id)
-
-                    if edit['editform'] in ('direct','new'):
-                        if 'insertright' in edit['assignments']:
-                            response['log'] = "Right insertion after " + target.id + ", by " + data['annotator']
-                            log(response['log'])
-
-                            #Undo any space=False attribute on the word we insert after, if set
-                            if isinstance(target, folia.Word) and not target.space:
-                                target.space = True
-
-                            try:
-                                index = target.parent.data.index(target) + 1
-                            except ValueError:
-                                response['error'] = "Unable to find insertion index"
-                                return response
-
-                            for wordtext in reversed(edit['assignments']['insertright'].split(' ')):
-                                target.parent.insert(index, ElementClass(doc, wordtext,generate_id_in=target.parent ) )
-                            if not target.parent.id in response['returnelementids']:
-                                response['returnelementids'].append( target.parent.id )
-                        elif 'insertleft' in edit['assignments']:
-                            response['log'] = "Left insertion before " + target.id + ", by " + data['annotator']
-                            log(response['log'])
-                            try:
-                                index = target.parent.data.index(target)
-                            except ValueError:
-                                response['error'] = "Unable to find insertion index"
-                                return response
-
-                            #undo any space=False prior to our insertion point
-                            if index > 0 and target.parent.data[index-1] and isinstance(target.parent.data[index-1], folia.Word) and not target.parent.data[index-1].space:
-                                target.parent.data[index-1].space = True
-
-                            for wordtext in reversed(edit['assignments']['insertleft'].split(' ')):
-                                target.parent.insert(index, ElementClass(doc, wordtext,generate_id_in=target.parent ) )
-                            if not target.parent.id in response['returnelementids']:
-                                response['returnelementids'].append( target.parent.id )
-
-                        elif 'split' in edit['assignments']:
-                            response['log'] = "Split of " + target.id + ", by " + data['annotator']
-                            log(response['log'])
-
-                            p = target.parent
-
-                            try:
-                                index = p.data.index(target)
-                            except ValueError:
-                                response['error'] = "Unable to find insertion index"
-                                return response
-
-                            p.remove(p.data[index])
-
-                            for wordtext in reversed(edit['assignments']['text'].split(' ')):
-                                p.insert(index, ElementClass(doc, folia.TextContent(doc, value=wordtext ), generate_id_in=p ) )
-
-                            if not p.id in response['returnelementids']:
-                                response['returnelementids'].append( p.id )
-                        elif 'text' in edit['assignments'] and edit['assignments']['text']:
-                            response['log'] = "Text content change of " + target.id + " (" + edit['assignments']['text']+"), by " + data['annotator']
-                            if not 'class' in edit['assignments']:
-                                edit['assignments']['class'] = 'current'
-                            log(response['log'])
-                            if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-                            target.replace(Class,value=edit['assignments']['text'], set=edit['assignments']['set'], cls=edit['assignments']['class'],annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime']) #does append if no replacable found
-                        else:
-                            response['log'] = "Text deletion of " + target.id + ", by " + data['annotator']
-                            log(response['log'])
-
-                            #TODO: remove text element only
-                            raise NotImplementedError("Text deletion not implemented")
-
-
-
-                    elif edit['editform'] == 'alternative':
-                        response['error'] = "Can not add alternative text yet, not implemented"
-                        return response
-                    elif edit['editform'] == 'correction':
-                        if 'insertright' in edit['assignments']:
-                            #Undo any space=False attribute if set
-                            if isinstance(target, folia.Word) and not target.space:
-                                target.space = True
-
-                            response['log'] = "Right insertion '" + edit['assignments']['insertright'] + "' (correction " + edit['correctionclass'] + ") after " + target.id +", by " + data['annotator']
-                            log(response['log'])
-                            newwords = []
-                            for wordtext in edit['assignments']['insertright'].split(' '):
-                                if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-                                newwords.append( ElementClass(doc, folia.TextContent(doc, wordtext, set=edit['assignments']['set']), generate_id_in=target.parent ) )
-                            target.parent.insertword(newwords, target, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'] )
-                            if not target.parent.id in response['returnelementids']:
-                                response['returnelementids'].append(target.parent.id )
-                        elif 'insertleft' in edit['assignments']:
-
-                            response['log'] = "Left insertion '" + edit['assignments']['insertleft'] + "' (correction " + edit['correctionclass'] + ") before " + target.id + ", by " + data['annotator']
-                            log(response['log'])
-
-                            #undo any space=False prior to our insertion point
-                            try:
-                                index = target.parent.data.index(target)
-                            except ValueError:
-                                index = 0
-                            if index > 0 and  isinstance(target.parent.data[index-1], folia.Word) and not target.parent.data[index-1].space:
-                                target.parent.data[index-1].space = True
-
-                            newwords = []
-                            if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-                            for wordtext in edit['assignments']['insertleft'].split(' '):
-                                newwords.append( ElementClass(doc, folia.TextContent(doc, wordtext, set=edit['assignments']['set']), generate_id_in=target.parent ) )
-                            target.parent.insertwordleft(newwords, target, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'] )
-                            if not target.parent.id in response['returnelementids']:
-                                response['returnelementids'].append(target.parent.id )
-                        elif 'split' in edit['assignments']:
-                            response['log'] = "Split of " + target.id + " '"+ edit['assignments']['text'] +"' (correction " + edit['correctionclass']+"), by " + data['annotator']
-                            log(response['log'])
-                            newwords = []
-                            if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-                            for wordtext in edit['assignments']['text'].split(' '):
-                                newwords.append( ElementClass(doc, folia.TextContent(doc, wordtext, set=edit['assignments']['set']), generate_id_in=target.parent ) )
-                            target.parent.splitword(target, *newwords, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'] )
-                            if not target.parent.id in response['returnelementids']:
-                                response['returnelementids'].append(target.parent.id )
-                        elif edit['assignments']['text']:
-                            response['log'] = "Text correction '" + edit['assignments']['text'] + "' on " + target.id + " (correction " + edit['correctionclass']+"), by " + data['annotator']
-                            log(response['log'])
-                            if not 'class' in edit['assignments']:
-                                edit['assignments']['class'] = 'current'
-                            target.correct(new=folia.TextContent(doc, value=edit['assignments']['text'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'] ), set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-                        else:
-                            response['log'] = "Deletion of " + target.id + " '" + target.text() + "' (correction " + edit['correctionclass']+"), by " + data['annotator']
-                            log(response['log'])
-
-                            raise NotImplementedError #delete text only, as correction
-
-        elif issubclass(Class, folia.AbstractTokenAnnotation): ################### EDIT OF TOKEN ANNOTATION #######################################
-
-            log("Edit of token annotation")
-            #Token annotation, each target will get a copy (usually just one target)
-            for targetid in edit['targets']:
-                try:
-                    target = doc[targetid]
-                except:
-                    response['error'] = "Target element " + targetid + " does not exist!"
-                    return response
-
-                if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-
-                if edit['editform'] == 'new' and edit['assignments']['class']:
-                    response['log'] = "Add of " + Class.__name__ + " (" + edit['assignments']['class'] + ") in " + target.id + ", by " + data['annotator']
-                    log(response['log'])
-                    target.append(Class,set=edit['assignments']['set'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-                elif edit['editform'] == 'direct':
-                    if edit['assignments']['class']:
-                        response['log'] = "Edit of " + Class.__name__ + " (" + edit['assignments']['class'] + ") in " + target.id + ", by " + data['annotator']
-                        log(response['log'])
-                        target.replace(Class,set=edit['assignments']['set'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime']) #does append if no replacable found
-                    else:
-                        response['log'] = "Deletion of " + Class.__name__ + " in " + target.id + ", by " + data['annotator']
-                        log(response['log'])
-                        #we have a deletion
-                        replace = Class.findreplaceables(target, edit['assignments']['set'])
-                        if len(replace) == 1:
-                            #good
-                            target.remove(replace[0])
-                        elif len(replace) > 1:
-                            response['error'] = "Unable to delete, multiple ambiguous candidates found!"
-                            return response
-                elif edit['editform'] == 'alternative':
-                    response['log'] = "Adding alternative of " + Class.__name__ + " (" + edit['assignments']['class'] + ") in " + target.id + ", by " + data['annotator']
-                    log(response['log'])
-                    target.append(Class,set=edit['assignments']['set'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'], alternative=True)
-                elif edit['editform'] == 'correction':
-                    if edit['assignments']['class']:
-                        response['log'] = "Correcting " + Class.__name__ + " (" + edit['assignments']['class'] + ") in " + target.id + ", by " + data['annotator']
-                        log(response['log'])
-                        log("Calling correct")
-                        target.correct(new=Class(doc, set=edit['assignments']['set'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime']), set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-                    else:
-                        response['log'] = "Deletion of " + Class.__name__ + " (" + edit['assignments']['class'] + "), as correction, in " + target.id + ", by " + data['annotator']
-                        log(response['log'])
-                        log("Calling correct")
-                        target.correct(original=target.annotation(Class, edit['actor']['set']), set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-
-
-
-        elif issubclass(Class, folia.AbstractSpanAnnotation): ################### EDIT OF SPAN ANNOTATION #######################################
-
-            log("Edit of span annotation")
-
-            targets = []
-            for targetid in edit['targets']:
-                try:
-                    targets.append( doc[targetid] )
-                except:
-                    response['error'] = "Target element " + targetid + " does not exist!"
-                    return response
-
-            if not 'set' in edit['assignments']: edit['assignments']['set'] = edit['actor']['set']
-
-
-            if edit['editform'] in ('direct','new'):
-                #Span annotation, one annotation spanning all tokens
-                if edit['editform'] == 'new':
-                    #this is a new span annotation
-
-                    response['log'] = "Adding " + Class.__name__ + " (" + edit['assignments']['class'] + ") for " + ",".join([x.id for x in targets]) + "; by " + data['annotator']
-                    log(response['log'])
-
-                    #create layer on common ancestor of all targets, use existing layer if possible, make new layer if not
-                    layers = doc[commonancestor].layers(annotationtype, edit['assignments']['set'])
-                    if len(layers) >= 1:
-                        layer = layers[0]
-                    else:
-                        layer = doc[commonancestor].append(folia.ANNOTATIONTYPE2LAYERCLASS[annotationtype])
-
-                    layer.append(Class, *targets, set=edit['assignments']['set'], cls=edit['assignments']['class'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'], generate_id_in=doc[commonancestor])
-
-                    if not layer.ancestor(folia.AbstractStructureElement).id in response['returnelementids']:
-                        response['returnelementids'].append(layer.ancestor(folia.AbstractStructureElement).id)
-
-
-                elif 'id' in edit['actor']:
-                    if edit['assignments']['class']:
-                        response['log'] = "Editing span annotation " + Class.__name__ + " (" + edit['assignments']['class'] + ") for " + ",".join([x.id for x in targets]) + "; by " + data['annotator']
-                    else:
-                        response['log'] = "Deleting span annotation " + Class.__name__ + " for " + ",".join([x.id for x in targets]) + "; by " + data['annotator']
-                    log(response['log'])
-                    #existing span annotation, we should have an ID
-                    try:
-                        annotation = doc[edit['actor']['id']]
-                    except:
-                        response['error'] = "No existing span annotation with id " + edit['actor']['id'] + " found"
-                        return response
-
-                    currenttargets = annotation.wrefs()
-                    if currenttargets != targets:
-                        if annotation.hasannotation(Class):
-                            response['error'] = "Unable to change the span of this annotation as there are nested span annotations embedded"
-                            return response
-                        else:
-                            annotation.data = targets
-
-
-
-
-                    if edit['assignments']['class']:
-                        annotation.cls = edit['assignments']['class']
-                        annotation.annotator = data['annotator']
-                        annotation.annotatortype = data['annotatortype']
-                    else:
-                        #delete:
-                        annotation.parent.remove(annotation)
-
-                    if not annotation.ancestor(folia.AbstractStructureElement).id in response['returnelementids']:
-                        response['returnelementids'].append(annotation.ancestor(folia.AbstractStructureElement).id)
-
-                else:
-                    #no ID, fail
-                    response['error'] = "Unable to edit span annotation without explicit id"
-                    return response
-
-            elif edit['editform'] == 'alternative':
-                response['error'] = "Only direct edit form is supported for span annotation elements at this time. Corrections and alternatives to be implemented still."
-                return response
-            elif edit['editform'] == 'correction':
-                if 'id' in edit['actor']:
-                    if edit['assignments']['class']:
-                        response['log'] = "Editing span annotation " + Class.__name__ + " (" + edit['assignments']['class'] + ", correction " + edit['correctionclass']+") for " + ",".join([x.id for x in targets]) + "; by " + data['annotator']
-                    else:
-                        response['log'] = "Deleting span annotation " + Class.__name__ + " (correction " + edit['correctionclass']+") for " + ",".join([x.id for x in targets]) + "; by " + data['annotator']
-                    log(response['log'])
-
-                    #existing span annotation, we should have an ID
-                    try:
-                        annotation = doc[edit['actor']['id']]
-                    except:
-                        response['error'] = "No existing span annotation with id " + edit['actor']['id'] + " found"
-                        return response
-
-                    layer = annotation.parent #may turn out to be another SpanAnnotation or Correction instead! should be okay
-
-                    currenttargets = annotation.wrefs()
-                    if currenttargets != targets:
-                        if annotation.hasannotation(Class):
-                            response['error'] = "Unable to change the span of this annotation as there are nested span annotations embedded"
-                            return response
-
-                    if edit['assignments']['class']:
-                        #TODO: will require extra work for dependencies and coref chains (handling of subelements)
-                        newannotation = Class(doc, *targets, cls=edit['assignments']['class'], set=edit['assignments']['set'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'], generate_id_in=layer.parent )
-                        layer.correct(original=annotation,new=newannotation, set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-                    else:
-                        #delete
-                        layer.correct(original=annotation,set=edit['correctionset'], cls=edit['correctionclass'], annotator=data['annotator'], annotatortype=data['annotatortype'], datetime=edit['datetime'])
-
-                    if not annotation.ancestor(folia.AbstractStructureElement).id in response['returnelementids']:
-                        response['returnelementids'].append( annotation.ancestor(folia.AbstractStructureElement).id)
-
-                else:
-                    #no ID, fail
-                    response['error'] = "Unable to edit span annotation without explicit id"
-                    return response
-        else:
-            response['error'] = "Unable to edit annotations of type " + Class.__name__
-            return response
-
-    log("Return elements: " + repr(response['returnelementids']))
-    if response['returnelementids']:
-        #log(doc[response['returnelementid']].xmlstring())
-        return response
-    else:
-        del response['returnelementids']
-        return response
 
 
 
@@ -1007,6 +406,66 @@ class Root:
             pass
         cherrypy.response.headers['Content-Type']= 'text/plain'
         return "ok"
+
+    ###NEW###
+
+
+
+    @cherrypy.expose
+    def query(self, namespace):
+        if 'X-sessionid' in cherrypy.request.headers:
+            sessionid = cherrypy.request.headers['X-sessionid']
+        else:
+            sessionid = 'NOSID'
+        if 'query' in cherrypy.request.params:
+            rawqueries = cherrypy.request.params['query'].split("\n")
+        else:
+            cl = cherrypy.request.headers['Content-Length']
+            rawqueries = cherrypy.request.body.read(int(cl)).split("\n")
+
+        prevdocselector = None
+        for rawquery in rawqueries:
+            try:
+                docselector, rawquery = parsedocumentselector(rawquery)
+                if not docselector: docselector = prevdocselector
+                query = fql.Query(rawquery)
+                if query.format == "python": query.format = "xml"
+                if query.action and not docselector:
+                    raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
+            except fql.SyntaxError as e:
+                raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
+
+            queries.append(query)
+            prevdocselector = docselector
+
+        results = []
+        for query in queries:
+            try:
+                doc = self.docstore[docselector]
+                results.append( query(doc,False) ) #False = nowrap
+                format = query.format
+            except NoSuchDocument:
+                raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
+            except fql.ParseError as e:
+                raise cherrypy.HTTPError(404, "FQL parse error: " + str(e))
+
+        if formats.endswith('xml'):
+            cherrypy.response.headers['Content-Type']= 'text/xml'
+        elif formats.endswith('json'):
+            cherrypy.response.headers['Content-Type']= 'application/json'
+
+        if format == "xml":
+            return "<results>" + "\n".join(results) + "</results>"
+        elif format == "json":
+            return "[" + ",".join(results) + "]"
+        elif format == "flat":
+            cherrypy.response.headers['Content-Type']= 'application/json'
+            return parseresults(results)
+        else:
+            return results[0]
+
+
+    ###OLD###
 
     @cherrypy.expose
     def getdoc(self, namespace, docid, sid):

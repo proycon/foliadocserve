@@ -63,7 +63,7 @@ Common variables in request URLs:
 Querying & Annotating
 ---------------------------
 
-* ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid``.
+* ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid`` and must contain ``Content-Length``.
 * ``/query/<namespace>/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
 
 These URLs will return HTTP 200 OK, with data in the format as requested in the FQL
@@ -385,12 +385,12 @@ The return type can be set using the **FORMAT** statement:
 * **FORMAT json** - Returns JSON list
 * **FORMAT single-json** - Like above, but returns a single element rather than
   a list. An error will be raised if the response contains multiple.
+* **FORMAT python** - Returns a Python object, can only be used when
+  directly querying the FQL library without the document server 
 * **FORMAT flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
    containing an HTML skeleton of structure elements (key html), parsed annotations
    (key annotations). If the query returns a full FoLiA document, then the JSON object will include parsed set definitions, (key
    setdefinitions), and declarations.  
-* **FORMAT python** - Returns a Python object, can only be used when
-  directly querying the FQL library without the document server 
 
 The **RETURN** statement may be used standalone or appended to a query, in
 which case it applies to all subsequent queries. The same applies to the
