@@ -82,8 +82,9 @@ Document Management
 ---------------------------
 
 * ``/namespaces/`` (GET) -- List of all the namespaces
-* ``/index/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
+* ``/documents/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
 * ``/upload/<namespace>/`` (POST) -- Uploads a FoLiA XML document to a namespace, request body contains FoLiA XML.
+* ``/create/<namespace>/`` (POST) -- Create a new namespace
 
 
 ========================================

@@ -1,5 +1,35 @@
-def parseresults(results):
-    raise NotImplementedError
+from pynlpl.formats import folia
+
+def getflatargs(params):
+    """Get arguments specific to FLAT, will be passed to parseresults"""
+    args = {}
+    if 'declarations' in params:
+        args['declarations'] = bool(int(params['declarations']))
+    else:
+        args['declarations'] = False
+    if 'setdefinitions' in params:
+        args['setdefinitions'] = bool(int(params['setdefinitions']))
+    else:
+        args['setdefinitions'] = False
+    return args
+
+def parseresults(results, doc, **kwargs):
+    response = {}
+    if 'declarations' in kwargs and kwargs['declarations']:
+        response['declarations'] = tuple(getdeclarations(doc))
+    if 'setdefinitions' in kwargs and kwargs['setdefinitions']:
+        response['setdefinitions'] =  getsetdefinitions(doc)
+
+    if results:
+        response['elements'] = []
+    for element in results:
+        response['elements'].append({
+            'elementid': element.id,
+            'html': gethtml(element),
+            'annotations': getannotations(element),
+        })
+    return json.dumps(response).encode('utf-8')
+
 
 def gethtml(element):
     """Converts the element to html skeleton"""

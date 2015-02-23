@@ -14,7 +14,7 @@ import traceback
 from copy import copy
 from collections import defaultdict
 from pynlpl.formats import folia, fql
-from foliadocserve.flat import parseresults
+from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
 
 def fake_wait_for_occupied_port(host, port): return
@@ -185,7 +185,7 @@ class Root:
         self.workdir = args.workdir
 
     @cherrypy.expose
-    def makenamespace(self, namespace):
+    def createnamespace(self, namespace):
         namepace = namespace.replace('/','').replace('..','')
         try:
             os.mkdir(self.workdir + '/' + namespace)
@@ -195,8 +195,6 @@ class Root:
         return "ok"
 
     ###NEW###
-
-
 
     @cherrypy.expose
     def query(self, namespace):
@@ -209,6 +207,9 @@ class Root:
         else:
             cl = cherrypy.request.headers['Content-Length']
             rawqueries = cherrypy.request.body.read(int(cl)).split("\n")
+
+        #Get parameters for FLAT-specific return format
+        flatargs = getflatargs(cherrypy.request.params)
 
         prevdocselector = None
         for rawquery in rawqueries:
@@ -226,15 +227,20 @@ class Root:
             prevdocselector = docselector
 
         results = []
+        doc = None
+        prevdocid = None
         for query in queries:
             try:
                 doc = self.docstore[docselector]
+                if prevdocid and doc.id != prevdocid:
+                    multidoc = True
                 results.append( query(doc,False) ) #False = nowrap
                 format = query.format
             except NoSuchDocument:
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
             except fql.ParseError as e:
                 raise cherrypy.HTTPError(404, "FQL parse error: " + str(e))
+            prevdocid = doc.id
 
         if formats.endswith('xml'):
             cherrypy.response.headers['Content-Type']= 'text/xml'
@@ -247,7 +253,10 @@ class Root:
             return "[" + ",".join(results) + "]"
         elif format == "flat":
             cherrypy.response.headers['Content-Type']= 'application/json'
-            return parseresults(results)
+            if len(results) > 1:
+                raise "{} //multidoc response, not producing results"
+            elif doc:
+                response = parseresults(results, doc, **flatargs)
         else:
             return results[0]
 
@@ -321,103 +330,6 @@ class Root:
             return b"{}"
 
 
-    @cherrypy.expose
-    def annotate(self, namespace, requestdocid, sid):
-        namepace = namespace.replace('/','').replace('..','')
-        cl = cherrypy.request.headers['Content-Length']
-        rawbody = cherrypy.request.body.read(int(cl))
-        request = json.loads(str(rawbody,'utf-8'))
-        returnresponse = {}
-        log("Annotation action - Renewing session " + sid + " for " + "/".join((namespace,requestdocid)))
-
-        if not 'queries' in request or len(request['queries']) == 0:
-            response = {'error': "No queries passed"}
-            return json.dumps(response)
-
-
-        data = {}
-        for query in request['queries']:
-            try:
-                data = parsequery(query, data)
-            except FQLParseError as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                formatted_lines = traceback.format_exc().splitlines()
-                response = {'error': "The FQL query could not be parsed: " + query + ". Error: " + str(e) + " -- " + "\n".join(formatted_lines) }
-                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
-                return json.dumps(response)
-
-
-
-        for ns, docid in data:
-            if ns != namespace:
-                raise cherrypy.HTTPError(403, "No permission to edit documents out of active namespace " + namespace)
-
-
-            if docid == requestdocid:
-                self.docstore.lastaccess[(ns,docid)][sid] = time.time()
-
-            doc = self.docstore[(ns,docid)]
-
-            if 'annotatortype' in request:
-                if request['annotatortype'] == 'auto':
-                    annotatortype = folia.AnnotatorType.AUTO
-                else:
-                    annotatortype = folia.AnnotatorType.MANUAL
-            else:
-                annotatortype = folia.AnnotatorType.MANUAL
-
-            annotationdata = { 'edits': data[(ns,docid)], 'annotator': request['annotator'], 'annotatortype': annotatortype }
-            try:
-                response = doannotation(doc, annotationdata)
-            except Exception as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                formatted_lines = traceback.format_exc().splitlines()
-                response = {'error': "The document server returned an error: " + str(e) + " -- " + "\n".join(formatted_lines) }
-                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
-                return json.dumps(response)
-
-
-
-
-            if docid == requestdocid:
-                returnresponse = response
-
-            if 'error' in response and response['error']:
-                log("ERROR: " + response['error'])
-                return json.dumps(response)
-
-            if 'log' in response:
-                response['log'] += " in document " + "/".join((ns,docid))
-            else:
-                if 'returnelementids' in response:
-                    response['log'] = "Unknown edit by " + request['annotator'] + " in " + ",".join(response['returnelementids']) + " in " + "/".join((ns,docid))
-                else:
-                    response['log'] = "Unknown edit by " + request['annotator'] + " in " + "/".join((ns,docid))
-
-            if ns == "testflat":
-                testresult = self.docstore.save((ns,docid),response['log'] )
-                log("Test result: " +str(repr(testresult)))
-            else:
-                self.docstore.save((ns,docid),response['log'] )
-                testresult = None
-
-            #set concurrency:
-            if 'returnelementids' in response:
-                for s in self.docstore.updateq[(ns,docid)]:
-                    if s != sid:
-                        log("Scheduling update for " + s)
-                        for eid in response['returnelementids']:
-                            self.docstore.updateq[(ns,docid)][s].append(eid)
-
-        if 'returnelementids' in returnresponse:
-            result =  self.getelements(namespace,requestdocid, returnresponse['returnelementids'],sid, testresult, {'queries': request['queries']})
-        else:
-            result = self.getelements(namespace,requestdocid, [self.docstore[(namespace,requestdocid)].data[0].id],sid, testresult,{'queries': request['queries']}) #return all
-        if namespace == "testflat":
-            #unload the document, we want a fresh copy every time
-            log("Unloading test document")
-            del self.docstore.data[(namespace,"testflat")]
-        return result
 
 
     def checkexpireconcurrency(self):
@@ -443,43 +355,11 @@ class Root:
 
 
 
-    def getelements(self, namespace, docid, elementids, sid, testresult=None, response = {}):
-        assert isinstance(elementids, list) or isinstance(elementids, tuple)
-        response['elements'] = []
-        if testresult:
-            response['testresult'] = bool(testresult[0])
-            response['testmessage'] = testresult[1]
 
-        for elementid in elementids:
-            log("Returning element " + str(elementid) + " in document " + "/".join((namespace,docid)) + ", session " + sid)
-            namepace = namespace.replace('/','').replace('..','')
-            if sid[-5:] != 'NOSID':
-                self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
-                if sid in self.docstore.updateq[(namespace,docid)]:
-                    try:
-                        self.docstore.updateq[(namespace,docid)][sid].remove(elementid)
-                    except:
-                        pass
-            try:
-                cherrypy.response.headers['Content-Type'] = 'application/json'
-                if elementid and elementid in self.docstore[(namespace,docid)]:
-                    log("Request element: "+ elementid)
-                    response['elements'].append({
-                        'elementid': elementid,
-                        'html': gethtml(self.docstore[(namespace,docid)][elementid]),
-                        'annotations': tuple(getannotations(self.docstore[(namespace,docid)][elementid])),
-                    })
-            except NoSuchDocument:
-                raise cherrypy.HTTPError(404, "Document not found: " + namespace + "/" + docid)
-        return json.dumps(response).encode('utf-8')
 
 
     @cherrypy.expose
-    def getelement(self, namespace, docid, elementid, sid):
-        return self.getelements(namespace, docid, [elementid], sid)
-
-    @cherrypy.expose
-    def poll(self, namespace, docid, sid):
+    def poll(self, namespace, docid, sid): #TODO: REDO
         if namespace == "testflat":
             return "{}" #no polling for testflat
 
@@ -497,32 +377,19 @@ class Root:
 
 
 
-    @cherrypy.expose
-    def declare(self, namespace, docid, sid):
-        cl = cherrypy.request.headers['Content-Length']
-        rawbody = cherrypy.request.body.read(int(cl))
-        data = json.loads(str(rawbody,'utf-8'))
-        log("Declaration: " + data['set'] + " for " + "/".join((namespace,docid)))
-        self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
-        doc = self.docstore[(namespace,docid)]
-        Class = folia.XML2CLASS[data['annotationtype']]
-        doc.declare(Class, set=data['set'])
-        return json.dumps({
-                'declarations': tuple(getdeclarations(self.docstore[(namespace,docid)])),
-                'setdefinitions': getsetdefinitions(self.docstore[(namespace,docid)])
-        })
-
 
 
     @cherrypy.expose
-    def getnamespaces(self):
+    def namespaces(self):
         namespaces = [ x for x in os.listdir(self.docstore.workdir) if x != "testflat" and x[0] != "." ]
         return json.dumps({
                 'namespaces': namespaces
         })
 
+
+
     @cherrypy.expose
-    def getdocuments(self, namespace):
+    def documents(self, namespace):
         namepace = namespace.replace('/','').replace('..','')
         docs = [ x for x in os.listdir(self.docstore.workdir + "/" + namespace) if x[-10:] == ".folia.xml" ]
         return json.dumps({
@@ -531,24 +398,6 @@ class Root:
                 'filesize': { x:os.path.getsize(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  }
         })
 
-
-    @cherrypy.expose
-    def getdocjson(self, namespace, docid, **args):
-        namepace = namespace.replace('/','').replace('..','')
-        try:
-            cherrypy.response.headers['Content-Type']= 'application/json'
-            return json.dumps(self.docstore[(namespace,docid)].json()).encode('utf-8')
-        except NoSuchDocument:
-            raise cherrypy.HTTPError(404, "Document not found: " + namespace + "/" + docid)
-
-    @cherrypy.expose
-    def getdocxml(self, namespace, docid, **args):
-        namepace = namespace.replace('/','').replace('..','')
-        try:
-            cherrypy.response.headers['Content-Type']= 'text/xml'
-            return self.docstore[(namespace,docid)].xmlstring().encode('utf-8')
-        except NoSuchDocument:
-            raise cherrypy.HTTPError(404, "Document not found: " + namespace + "/" + docid)
 
     @cherrypy.expose
     def upload(self, namespace):
