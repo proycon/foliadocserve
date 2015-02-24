@@ -17,6 +17,8 @@
 #----------------------------------------------------------------
 
 from pynlpl.formats import folia
+import json
+import random
 
 def getflatargs(params):
     """Get arguments specific to FLAT, will be passed to parseresults"""
@@ -40,14 +42,15 @@ def parseresults(results, doc, **kwargs):
 
     if results:
         response['elements'] = []
-    for element in results:
-        response['elements'].append({
-            'elementid': element.id,
-            'html': gethtml(element),
-            'annotations': getannotations(element),
-        })
+    for queryresults in results: #results are grouped per query, we don't care about the origin now
+        for element in queryresults:
+            response['elements'].append({
+                'elementid': element.id if element.id else None,
+                'html': gethtml(element) if isinstance(element, folia.AbstractStructureElement) else None,
+                'annotations': list(getannotations(element)),
+            })
     if 'sid' in kwargs:
-        kwargs['sid'] = sid
+        response['sid'] = kwargs['sid']
     return json.dumps(response).encode('utf-8')
 
 

@@ -99,7 +99,14 @@
                         dataType: "text",
                         success: function(result) {
                             $("#error").hide();
-                            $("#output").html("<code>" + result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;') + "</code>");
+                            var output = result;
+                            try {
+                                var parsed = JSON.parse(result);
+                                output = JSON.stringify(parsed, null, 2);
+                            } catch(err) {
+                            }
+                            output = output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+                            $("#output").html("<code>" + output + "</code>");
                             $('#output code').each(function(i, block) {
                                 hljs.highlightBlock(block);
                             });
