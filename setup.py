@@ -45,5 +45,5 @@ setup(
         ]
     },
     package_data = {'foliadocserve':['templates/index.html'] },
-    install_requires=['lxml >= 2.2','pynlpl >= 0.7.0']
+    install_requires=['lxml >= 2.2','pynlpl >= 0.7.0','cherrypy','Jinja2']
 )
