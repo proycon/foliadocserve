@@ -169,6 +169,9 @@ is restricted to the command line ``foliaquery`` tool rather than this document 
 
  LOAD <filename> 
 
+If you're interested in retrieving the full document rather than doing specific querying, use
+``GET`` statement immediately after a ``USE`` or ``LOAD`` expression.
+
 -----------------
 Declarations
 -----------------

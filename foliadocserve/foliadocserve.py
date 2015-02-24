@@ -255,11 +255,14 @@ class Root:
                 docselector, rawquery = getdocumentselector(rawquery)
                 if not docselector: docselector = prevdocselector
                 if not sessiondocselector: sessiondocselector = docselector
-                query = fql.Query(rawquery)
-                if query.format == "python":
-                    query.format = "xml"
-                if query.action and not docselector:
-                    raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
+                if rawquery == "GET":
+                    query = "GET"
+                else:
+                    query = fql.Query(rawquery)
+                    if query.format == "python":
+                        query.format = "xml"
+                    if query.action and not docselector:
+                        raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
 
@@ -273,10 +276,14 @@ class Root:
         for query in queries:
             try:
                 doc = self.docstore[docselector]
-                if prevdocid and doc.id != prevdocid:
-                    multidoc = True
-                results.append( query(doc,False) ) #False = nowrap
-                format = query.format
+                if isinstance(query, fql.Query):
+                    if prevdocid and doc.id != prevdocid:
+                        multidoc = True
+                    results.append( query(doc,False) ) #False = nowrap
+                    format = query.format
+                elif query == "GET":
+                    results.append(doc.xmlstring())
+                    format = "single-xml"
             except NoSuchDocument:
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
             except fql.ParseError as e:
