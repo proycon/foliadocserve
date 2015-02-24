@@ -34,26 +34,39 @@
                 border: #999 dotted 1px;
                 padding: 10px;
             }
+            #error {
+                display: block;
+                width: 90%;
+                min-height: 150px;
+                background: #fdd;
+                border: #900 dotted 1px;
+                padding: 10px;
+            }
             h1 {
                 text-align: center;
             }
         </style>
         <script type="text/javascript" charset="utf-8">
             $(document).ready(function(){
+                $('#output').hide();
+                $('#error').hide();
                 $('#listnamespaces').click(function() {
                      $.ajax({
                         url: "namespaces/",
                         dataType: "json",
-                        complete: function(result) {
-                            var result = result.responseJSON;
+                        success: function(result) {
+                            $("#error").hide();
                             var out = "";
                             for (var i = 0; i < result.namespaces.length; i++) {
                                 out += result.namespaces[i] + "\n";
                             }
                             $("#output").html(out);
+                            $("#output").show();
                         },
                         error: function(r) {
-                            $("#output").html(r.responseText);
+                            $("#output").hide();
+                            $("#error").show();
+                            $("#error").html(r.responseText);
                         }
                     });
                 });
@@ -62,16 +75,19 @@
                         url: "documents/",
                         data: {'namespace': $('#namespace').val() },
                         dataType: "json",
-                        complete: function(result) {
-                            var result = result.responseJSON;
+                        success: function(result) {
+                            $("#error").hide();
                             var out = "";
                             for (var i = 0; i < result.documents.length; i++) {
                                 out += result.documents[i] + "\n";
                             }
                             $("#output").html(out);
+                            $("#output").show();
                         },
                         error: function(r) {
-                            $("#output").html(r.responseText);
+                            $('#output').hide();
+                            $("#error").show();
+                            $("#error").html(r.responseText);
                         }
                     });
                 });
@@ -81,14 +97,18 @@
                         type: 'POST',
                         data: {'query': $('#query').val()},
                         dataType: "text",
-                        complete: function(result) {
-                            $("#output").html("<code>" + result.responseText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;') + "</code>");
+                        success: function(result) {
+                            $("#error").hide();
+                            $("#output").html("<code>" + result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;') + "</code>");
                             $('#output code').each(function(i, block) {
                                 hljs.highlightBlock(block);
                             });
+                            $("#output").show();
                         },
                         error: function(r) {
-                            $("#output").html(r.responseText);
+                            $('#output').hide();
+                            $("#error").show();
+                            $("#error").html(r.responseText);
                         }
                     });
                 });
@@ -115,6 +135,7 @@
             </div>
             <div>
                 <h3>Output</h3>
+                <pre id="error"></pre>
                 <pre id="output"></pre>
             </div>
         </div>
