@@ -256,7 +256,8 @@ class Root:
                 if not docselector: docselector = prevdocselector
                 if not sessiondocselector: sessiondocselector = docselector
                 query = fql.Query(rawquery)
-                if query.format == "python": query.format = "xml"
+                if query.format == "python":
+                    query.format = "xml"
                 if query.action and not docselector:
                     raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
@@ -291,9 +292,9 @@ class Root:
 
 
         if format == "xml":
-            return "<results>" + "\n".join(results) + "</results>"
+            out = "<results>" + "\n".join(results) + "</results>"
         elif format == "json":
-            return "[" + ",".join(results) + "]"
+            out = "[" + ",".join(results) + "]"
         elif format == "flat":
             if sid != 'NOSID' and sessiondocselector and not multidoc:
                 self.createsession(sessiondocselector[0],sessiondocselector[1],sid, results)
@@ -301,9 +302,15 @@ class Root:
             if multidoc:
                 raise "{} //multidoc response, not producing results"
             elif doc:
-                return parseresults(results, doc, **flatargs)
+                out =  parseresults(results, doc, **flatargs)
         else:
-            return results[0]
+            out = results[0]
+
+        if isinstance(out,str):
+            return out.encode('utf-8')
+        else:
+            return out
+
 
     @cherrypy.expose
     def index(self):
