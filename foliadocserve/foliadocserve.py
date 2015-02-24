@@ -311,6 +311,8 @@ class Root:
             elif doc:
                 out =  parseresults(results, doc, **flatargs)
         else:
+            if len(results) > 1:
+                raise cherrypy.HTTPError(404, "Multiple results were obtained but format dictates only one can be returned!")
             out = results[0]
 
         if isinstance(out,str):
