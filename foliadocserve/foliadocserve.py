@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 #---------------------------------------------------------------
 # FoLiA Document Server
 #   by Maarten van Gompel
@@ -36,6 +35,10 @@ from collections import defaultdict
 from pynlpl.formats import folia, fql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
+
+from jinja2 import Environment, FileSystemLoader
+syspath = os.path.dirname(os.path.realpath(__file__))
+env = Environment(loader=FileSystemLoader(syspath + '/templates'))
 
 def fake_wait_for_occupied_port(host, port): return
 
@@ -177,6 +180,7 @@ class DocStore:
             self.unload(key, save)
 
 
+
 def getdocumentselector(query):
     if query.startswith("USE "):
         end = query[4:].index(' ') + 4
@@ -223,18 +227,18 @@ class Root:
     ###NEW###
 
     @cherrypy.expose
-    def query(self, namespace):
+    def query(self, **kwargs):
         """Query method, all FQL queries arrive here"""
 
         if 'X-sessionid' in cherrypy.request.headers:
             sid = cherrypy.request.headers['X-sessionid']
-        elif 'sid' in cherrypy.request.params:
-            sid = cherrypy.request.params['sid']
+        elif 'sid' in kwargs:
+            sid = kwargs['sid']
         else:
             sid = 'NOSID'
 
-        if 'query' in cherrypy.request.params:
-            rawqueries = cherrypy.request.params['query'].split("\n")
+        if 'query' in kwargs:
+            rawqueries = kwargs['query'].split("\n")
         else:
             cl = cherrypy.request.headers['Content-Length']
             rawqueries = cherrypy.request.body.read(int(cl)).split("\n")
@@ -245,9 +249,10 @@ class Root:
 
         prevdocselector = None
         sessiondocselector = None
+        queries = []
         for rawquery in rawqueries:
             try:
-                docselector, rawquery = parsedocumentselector(rawquery)
+                docselector, rawquery = getdocumentselector(rawquery)
                 if not docselector: docselector = prevdocselector
                 if not sessiondocselector: sessiondocselector = docselector
                 query = fql.Query(rawquery)
@@ -277,9 +282,11 @@ class Root:
                 raise cherrypy.HTTPError(404, "FQL parse error: " + str(e))
             prevdocid = doc.id
 
-        if formats.endswith('xml'):
+        if not format:
+            raise cherrypy.HTTPError(404, "No queries given")
+        if format.endswith('xml'):
             cherrypy.response.headers['Content-Type']= 'text/xml'
-        elif formats.endswith('json'):
+        elif format.endswith('json'):
             cherrypy.response.headers['Content-Type']= 'application/json'
 
 
@@ -297,6 +304,11 @@ class Root:
                 return parseresults(results, doc, **flatargs)
         else:
             return results[0]
+
+    @cherrypy.expose
+    def index(self):
+        template = env.get_template('index.html')
+        return template.render()
 
 
     @cherrypy.expose

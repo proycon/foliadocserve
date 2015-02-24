@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+    <head>
+        <title>FoLiA Document Server</title>
+        <script src="http://code.jquery.com/jquery-1.11.2.min.js" type="text/javascript" charset="utf-8"></script>
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+        <style type="text/css" media="all">
+            body {
+                background: #8ba8b8;
+            }
+            #container { 
+                width: 75%;
+                min-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #container>div {
+                background: white;
+                border: #555 solid 1px;
+                padding: 10px;
+                margin: 10px;
+                width: 90%;
+            }
+            textarea {
+                width: 95%;
+                min-height: 150px;
+            }
+            #output {
+                display: block;
+                width: 90%;
+                min-height: 150px;
+                background: #ddd;
+                border: #999 dotted 1px;
+                padding: 10px;
+            }
+            h1 {
+                text-align: center;
+            }
+        </style>
+        <script type="text/javascript" charset="utf-8">
+            $(document).ready(function(){
+                $('#listnamespaces').click(function() {
+                     $.ajax({
+                        url: "namespaces/",
+                        dataType: "json",
+                        complete: function(result) {
+                            var result = result.responseJSON;
+                            var out = "";
+                            for (var i = 0; i < result.namespaces.length; i++) {
+                                out += result.namespaces[i] + "\n";
+                            }
+                            $("#output").html(out);
+                        },
+                        error: function(r) {
+                            $("#output").html(r.responseText);
+                        }
+                    });
+                });
+                $('#listdocs').click(function() {
+                     $.ajax({
+                        url: "documents/",
+                        data: {'namespace': $('#namespace').val() },
+                        dataType: "json",
+                        complete: function(result) {
+                            var result = result.responseJSON;
+                            var out = "";
+                            for (var i = 0; i < result.documents.length; i++) {
+                                out += result.documents[i] + "\n";
+                            }
+                            $("#output").html(out);
+                        },
+                        error: function(r) {
+                            $("#output").html(r.responseText);
+                        }
+                    });
+                });
+                $('#submitquery').click(function() {
+                     $.ajax({
+                        url: "query/",
+                        type: 'POST',
+                        data: {'query': $('#query').val()},
+                        dataType: "text",
+                        complete: function(result) {
+                            $("#output").html("<code>" + result.responseText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;') + "</code>");
+                            $('#output code').each(function(i, block) {
+                                hljs.highlightBlock(block);
+                            });
+                        },
+                        error: function(r) {
+                            $("#output").html(r.responseText);
+                        }
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div id="container">
+            <h1>FoLiA Document Server</h1>
+            <div>
+                <h3>Document Management</h3>
+                <hr />
+                <button id="listnamespaces">List Namespaces</button><br />
+                <hr />
+                Namespace: <input id="namespace" /><button id="listdocs">List Documents</button> 
+                <hr />
+                File: <input type="file" name="file" /><button>Upload document</button>
+            </div>
+            <div>
+                <h3>FQL Query</h3>
+                <p>(<a href="https://github.com/proycon/foliadocserve/blob/master/README.rst">documentation</a>)</p>
+                <textarea id="query"></textarea>
+                <button id="submitquery">Submit query</button>
+            </div>
+            <div>
+                <h3>Output</h3>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </body>
+</html>
