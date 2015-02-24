@@ -735,10 +735,9 @@ expression::
 
  SELECT pos WHERE class = "n" FOR w RETURN target
 
-This illustrated that there are often multiple ways of obtaining the same
+This illustrates that there are often multiple ways of obtaining the same
 result set. Due to lazy evaluation in the FQL library, there is not much
 difference performance-wise.
-
 
 Another kind of shortcut exists for setting text on structural elements. You
 can add a word with text like this::
