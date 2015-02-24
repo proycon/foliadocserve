@@ -27,7 +27,7 @@ setup(
     keywords = "nlp computational_linguistics rest database document server",
     url = "https://github.com/proycon/foliadocserve",
     packages=['foliadocserve','foliadocserve.flat','foliadocserve.test'],
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Text Processing :: Linguistic",
