@@ -1,5 +1,3 @@
-**NOTE: This documentation describes a newer version than currently implemented and is a draft for the new implementation!!**
- 
 *****************************************
 FoLiA Document Server
 *****************************************
@@ -35,10 +33,10 @@ too), as requested by the queries themselves.
 
 Features:
 
+* webservice
 * versioning control support using git
 * full support for corrections, alternatives
 * support for concurrency 
-* usable from the command line as well as as a webservice
 
 Note that this webservice is *NOT* intended to be publicly exposed, but rather
 to be used as a back-end by another system. The document server does support
@@ -46,6 +44,10 @@ constraining namespaces to certain session ids, constraining FQL queries to not
 violate their namespace, and constraining uploads by session id or namespace.
 This is secure for public exposure only when explicitly enabled and used over
 HTTPS.
+
+If you are looking for a command line tool that interprets FQL, use the
+``foliaquery`` tool from the FoLiA-tools package rather than this document
+server, see https://github.com/proycon/folia
 
 =========================================
 Webservice Specification
@@ -127,18 +129,18 @@ necessary and the default will be automatically set.
 Document Selection
 -------------------
 
-Almost FQL statements start with a document selector, represented by the
+FQL statements for the document server start with a document selector, represented by the
 keyword **USE**::
 
  USE <namespace>/<docid> 
 
-This select what document to apply the query to, the document will be
+This selects what document to apply the query to, the document will be
 automatically loaded and unloaded by the server as it sees fit. It can be
 prepended to any action query or used standalone, in which case it will apply o
 all subsequent queries.
 
 Alternatively, the **LOAD** statement loads an arbitrary file from disk, but its use
-is restricted to the command line version::
+is restricted to the command line ``foliaquery`` tool rather than this document server::
 
  LOAD <filename> 
 
@@ -263,6 +265,9 @@ Target expressions, starting with the **FOR** keyword, can be nested::
 
  SELECT pos FOR w WHERE class != "PUNCT" FOR event WHERE class = "tweet"
 
+You may also use the SELECT keyword without focus expression, but only with a target expression. This is particularly useful when you want to return multiple distinct elements, for instance by ID::
+
+ SELECT FOR ID mydocument.word.3 , ID myword.document.word.25
 
 Target expressions are vital for span annotation, the keyword **SPAN** indicates
 that the target is a span (to do multiple spans at once, repeat the SPAN
