@@ -45,9 +45,32 @@ violate their namespace, and constraining uploads by session id or namespace.
 This is secure for public exposure only when explicitly enabled and used over
 HTTPS.
 
-If you are looking for a command line tool that interprets FQL, use the
-``foliaquery`` tool from the FoLiA-tools package rather than this document
-server, see https://github.com/proycon/folia
+If you are looking for a command line tool that interprets FQL and queries
+FoLiA documents, use the ``foliaquery`` tool from the FoLiA-tools package
+rather than this document server, see https://github.com/proycon/folia
+
+=======================
+Installation & Usage
+=======================
+
+You can directly fetch the document server from the Python Package Index::
+
+    $ pip install foliadocserve
+
+Alternatively, install manually from the git repository or downloaded tarball::
+
+    $ python setup.py install
+
+You may need to use ``sudo`` for global installation.
+
+Create a writable directory to hold documents, this is the document root path. Then
+start the document server as follows::
+
+    $ foliadocserve -d /path/to/document/root
+
+See ``-h`` for further options.
+
+When started, a simple web-interface will be available on the specified host and port.
 
 =========================================
 Webservice Specification
@@ -65,8 +88,8 @@ Common variables in request URLs:
 Querying & Annotating
 ---------------------------
 
-* ``/query/<namespace>/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid`` and must contain ``Content-Length``.
-* ``/query/<namespace>/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
+* ``/query/`` (POST) - Content body consists of FQL queries, one per line (text/plain). The request header may contain ``X-sessionid`` and must contain ``Content-Length``.
+* ``/query/?query=`` (GET) -- HTTP GET alias for the above, limited to a single query
 
 These URLs will return HTTP 200 OK, with data in the format as requested in the FQL
 query if the query is succesful. If the query contains an error, an HTTP 404 response
@@ -87,6 +110,8 @@ Document Management
 * ``/documents/<namespace>/`` (GET) -- Document Index for the given namespace (JSON list)
 * ``/upload/<namespace>/`` (POST) -- Uploads a FoLiA XML document to a namespace, request body contains FoLiA XML.
 * ``/create/<namespace>/`` (POST) -- Create a new namespace
+
+
 
 
 ========================================
