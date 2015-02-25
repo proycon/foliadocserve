@@ -297,6 +297,15 @@ You may also use the SELECT keyword without focus expression, but only with a ta
 
  SELECT FOR ID mydocument.word.3 , ID myword.document.word.25
 
+The **SELECT** keyword can also be used with the special **ALL** selector that selects all elemens in the scope, the following two statement are identical and will return all elements in the document::
+
+ SELECT ALL
+ SELECT FOR ALL
+
+It can be used at deeper levels too, the following will return everything under all words::
+
+ SELECT ALL FOR w
+
 Target expressions are vital for span annotation, the keyword **SPAN** indicates
 that the target is a span (to do multiple spans at once, repeat the SPAN
 keyword again), the operator ``&`` is used for consecutive spans, whereas ``,``
