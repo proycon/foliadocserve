@@ -261,18 +261,21 @@ class Root:
                     if query.action and not docselector:
                         raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
+                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
+                log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
 
-            queries.append(query)
+            queries.append( (query, rawquery))
             prevdocselector = docselector
 
         results = []
         doc = None
         prevdocid = None
         multidoc = False #are the queries over multiple distinct documents?
-        for query in queries:
+        for query, rawquery in queries:
             try:
                 doc = self.docstore[docselector]
+                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
                 if isinstance(query, fql.Query):
                     if prevdocid and doc.id != prevdocid:
                         multidoc = True
@@ -282,9 +285,11 @@ class Root:
                     results.append(doc.xmlstring())
                     format = "single-xml"
             except NoSuchDocument:
+                log("[QUERY FAILED] No such document")
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
-            except fql.ParseError as e:
-                raise cherrypy.HTTPError(404, "FQL parse error: " + str(e))
+            except fql.QueryError as e:
+                log("[QUERY FAILED] FQL Query Error: " + str(e))
+                raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             prevdocid = doc.id
 
         if not format:
