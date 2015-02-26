@@ -396,7 +396,12 @@ class Root:
 
 
     @cherrypy.expose
-    def poll(self, namespace, docid, sid):
+    def poll(self, namespace, docid):
+        if 'X-sessionid' in cherrypy.request.headers:
+            sid = cherrypy.request.headers['X-sessionid']
+        else:
+            raise cherrypy.HTTPError(404, "Expected X-sessionid" + docselector[0] + "/" + docselector[1])
+
         if namespace == "testflat":
             return "{}" #no polling for testflat
 
