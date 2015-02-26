@@ -207,6 +207,7 @@ class Root:
     def __init__(self,docstore,args):
         self.docstore = docstore
         self.workdir = args.workdir
+        self.debug = args.debug
 
     def createsession(self,namespace,docid, sid, results):
         if sid[-5:] != 'NOSID':
@@ -279,11 +280,16 @@ class Root:
                 if isinstance(query, fql.Query):
                     if prevdocid and doc.id != prevdocid:
                         multidoc = True
-                    results.append( query(doc,False) ) #False = nowrap
+                    result =  query(doc,False,self.debug >= 2)
+                    results.append(result) #False = nowrap
+                    if self.debug:
+                        log("[QUERY RESULT] " + result)
                     format = query.format
                 elif query == "GET":
                     results.append(doc.xmlstring())
                     format = "single-xml"
+                else:
+                    raise Exception("Invalid query")
             except NoSuchDocument:
                 log("[QUERY FAILED] No such document")
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
@@ -316,6 +322,9 @@ class Root:
             if len(results) > 1:
                 raise cherrypy.HTTPError(404, "Multiple results were obtained but format dictates only one can be returned!")
             out = results[0]
+
+        if self.debug:
+            log("[FINAL RESULTS] " + out)
 
         if isinstance(out,str):
             return out.encode('utf-8')
@@ -478,6 +487,7 @@ def main():
     parser.add_argument('-d','--workdir', type=str,help="Work directory", action='store',required=True)
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
     parser.add_argument('-l','--logfile', type=str,help="Log file", action='store',default="foliadocserve.log",required=False)
+    parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     args = parser.parse_args()
     logfile = open(args.logfile,'w',encoding='utf-8')
