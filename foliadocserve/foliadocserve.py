@@ -232,8 +232,6 @@ class Root:
 
         if 'X-sessionid' in cherrypy.request.headers:
             sid = cherrypy.request.headers['X-sessionid']
-        elif 'sid' in kwargs:
-            sid = kwargs['sid']
         else:
             sid = 'NOSID'
 
@@ -245,7 +243,6 @@ class Root:
 
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
-        flatargs['sid'] = sid
 
         prevdocselector = None
         sessiondocselector = None
