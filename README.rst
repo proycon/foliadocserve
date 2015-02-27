@@ -28,15 +28,18 @@ and are serialised back to XML files on disk when unloaded.
 
 The document server is a webservice that receives requests over HTTP. Requests
 interacting with a FoLiA document consist of statements in FoLiA Query Language
-(FQL). Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts
-too), as requested by the queries themselves.
+(FQL). For some uses the Corpus Query Language (CQL) is also supported.
+Responses are FoLiA XML or parsed into JSON (may contain HTML excerpts too), as
+requested in the FQL queries themselves.
 
 Features:
 
 * webservice
+* queries using FQL,  or alternatively CQL (limited)
+* multiple return formats (FoLiA XML, JSON, FLAT) 
 * versioning control support using git
-* full support for corrections, alternatives
-* support for concurrency 
+* full support for corrections, alternatives!
+* support for concurrency
 
 Note that this webservice is *NOT* intended to be publicly exposed, but rather
 to be used as a back-end by another system. The document server does support
@@ -45,7 +48,7 @@ violate their namespace, and constraining uploads by session id or namespace.
 This is secure for public exposure only when explicitly enabled and used over
 HTTPS.
 
-If you are looking for a command line tool that interprets FQL and queries
+If you are looking for a command line tool that interprets FQL/CQL and queries
 FoLiA documents, use the ``foliaquery`` tool from the FoLiA-tools package
 rather than this document server, see https://github.com/proycon/folia
 
@@ -806,4 +809,30 @@ Or using the shortcut::
 
 
 
+========================================
+Corpus Query Language (CQL)
+========================================
+
+The FoLiA Document Server also supports a basic subset of CQL. CQL focusses on
+querying only, and has no data manipulation functions like FQL. CQL, however,
+is considerably more concise than FQL, already well-spread, and its syntax is
+easier.
+
+To use CQL instead of FQL, just start your query as usual with an FQL **USE**
+or , then use the **CQL** keyword and everything thereafter will be interpreted
+as CQL.  Example::
+
+ USE mynamespace/proycon CQL "the" [ tag="JJ.*" ]? [ lemma="house" & tag="N" ]
+
+The ``tag`` attribute maps to the FoLiA ``pos`` type. ``word`` maps to
+FoLiA/FQL ``text``, any other attributes are unmapped so you can simply use the
+FoLiA names from CQL, including any span annotation.
+
+If multiple sets are available for a type, make sure to use the ``DEFAULTSET``
+FQL keyword to set a default, otherwise the query will fail as CQL does not know
+the FoLiA set paradigm.
+
+The CQL language is documented here:
+http://www.sketchengine.co.uk/documentation/wiki/SkE/CorpusQuerying , the
+advanced operators mentioned there are not supported yet.
 
