@@ -49,8 +49,6 @@ def parseresults(results, doc, **kwargs):
                 'html': gethtml(element) if isinstance(element, folia.AbstractStructureElement) else None,
                 'annotations': list(getannotations(element)),
             })
-    if 'sid' in kwargs:
-        response['sid'] = kwargs['sid']
     return json.dumps(response).encode('utf-8')
 
 

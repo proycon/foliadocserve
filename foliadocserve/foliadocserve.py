@@ -207,6 +207,7 @@ class Root:
     def __init__(self,docstore,args):
         self.docstore = docstore
         self.workdir = args.workdir
+        self.debug = args.debug
 
     def createsession(self,namespace,docid, sid, results):
         if sid[-5:] != 'NOSID':
@@ -232,8 +233,6 @@ class Root:
 
         if 'X-sessionid' in cherrypy.request.headers:
             sid = cherrypy.request.headers['X-sessionid']
-        elif 'sid' in kwargs:
-            sid = kwargs['sid']
         else:
             sid = 'NOSID'
 
@@ -245,7 +244,6 @@ class Root:
 
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
-        flatargs['sid'] = sid
 
         prevdocselector = None
         sessiondocselector = None
@@ -264,29 +262,39 @@ class Root:
                     if query.action and not docselector:
                         raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
+                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
+                log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
 
-            queries.append(query)
+            queries.append( (query, rawquery))
             prevdocselector = docselector
 
         results = []
         doc = None
         prevdocid = None
         multidoc = False #are the queries over multiple distinct documents?
-        for query in queries:
+        for query, rawquery in queries:
             try:
                 doc = self.docstore[docselector]
+                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
                 if isinstance(query, fql.Query):
                     if prevdocid and doc.id != prevdocid:
                         multidoc = True
-                    results.append( query(doc,False) ) #False = nowrap
+                    result =  query(doc,False,self.debug >= 2)
+                    results.append(result) #False = nowrap
+                    if self.debug:
+                        log("[QUERY RESULT] " + result)
                     format = query.format
                 elif query == "GET":
                     results.append(doc.xmlstring())
                     format = "single-xml"
+                else:
+                    raise Exception("Invalid query")
             except NoSuchDocument:
+                log("[QUERY FAILED] No such document")
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
             except fql.QueryError as e:
+                log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             prevdocid = doc.id
 
@@ -314,6 +322,9 @@ class Root:
             if len(results) > 1:
                 raise cherrypy.HTTPError(404, "Multiple results were obtained but format dictates only one can be returned!")
             out = results[0]
+
+        if self.debug:
+            log("[FINAL RESULTS] " + out)
 
         if isinstance(out,str):
             return out.encode('utf-8')
@@ -396,7 +407,12 @@ class Root:
 
 
     @cherrypy.expose
-    def poll(self, namespace, docid, sid):
+    def poll(self, namespace, docid):
+        if 'X-sessionid' in cherrypy.request.headers:
+            sid = cherrypy.request.headers['X-sessionid']
+        else:
+            raise cherrypy.HTTPError(404, "Expected X-sessionid" + docselector[0] + "/" + docselector[1])
+
         if namespace == "testflat":
             return "{}" #no polling for testflat
 
@@ -471,6 +487,7 @@ def main():
     parser.add_argument('-d','--workdir', type=str,help="Work directory", action='store',required=True)
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
     parser.add_argument('-l','--logfile', type=str,help="Log file", action='store',default="foliadocserve.log",required=False)
+    parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     args = parser.parse_args()
     logfile = open(args.logfile,'w',encoding='utf-8')
