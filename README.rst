@@ -710,19 +710,38 @@ several *context keywords* that give us all the tools we need to peek at the
 context. Like **HAS** expressions, these need always be enclosed in
 parentheses. 
 
-For instance, consider part-of-speech tagging scenario. If we have a word where the left neighbour is a determiner, and the
-right neighbour a noun, we can be pretty sure the word under our consideration (our target expression) is an adjective. Let's add the pos tag::
+For instance, consider part-of-speech tagging scenario. If we have a word where
+the left neighbour is a determiner, and the right neighbour a noun, we can be
+pretty sure the word under our consideration (our target expression) is an
+adjective. Let's add the pos tag::
 
  EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS w WHERE (pos HAS class == "det")) AND (NEXT w WHERE (pos HAS class == "n"))
 
-You may append a number directly to the **PREVIOUS**/**NEXT** modifier if you're
-interested in further context, or you may use **LEFTCONTEXT**/**RIGHTCONTEXT**/**CONTEXT** if you don't care at
-what position something occurs::
+You may append a number directly to the **PREVIOUS**/**NEXT** modifier if
+you're interested in further context, or you may use
+**LEFTCONTEXT**/**RIGHTCONTEXT**/**CONTEXT** if you don't care at what position
+something occurs::
 
  EDIT pos WITH class = "adj" FOR w WHERE (PREVIOUS2 w WHERE (pos HAS class == "det")) AND (PREVIOUS w WHERE (pos HAS class == "adj")) AND (RIGHTCONTEXT w WHERE (pos HAS class == "n"))
 
+Instead of the **NEXT** and **PREVIOUS** keywords, a target expression can be used with the **SPAN** keyword and  the **&** operator::
+
+ SELECT FOR SPAN w WHERE text = "the" & w WHERE (pos HAS class == "adj") & w WHERE text = "house"
+
+Within a **SPAN** keyword, an **expansion expression** can be used to select any number, or a certain
+number, of elements. You can do this by appending curly braces right next to
+the element name and specifying the minimum and maximum number of elements. The
+following expression selects from zero up to three adjectives between the words
+"the" and "house"::
+
+ SELECT FOR SPAN w WHERE text = "the" & w{0,3} WHERE (pos HAS class == "adj") & w WHERE text = "house"
+
+If you specify only a single number in the curly braces, it will require that
+exact number of elements. To match at least one word up to an unlimited number,
+use an expansion expression such as ``{1,}``.
+
 If you are now perhaps tempted to use the FoLiA document server and FQL for searching through
-large corpora, then be advised that this is not a good idea. It will be prohibitively
+large corpora in real-time, then be advised that this is not a good idea. It will be prohibitively
 slow on large datasets as this requires smart indexing, which this document
 server does not provide. You can therefore not do this real-time, but perhaps
 only as a first step to build an actual search index.

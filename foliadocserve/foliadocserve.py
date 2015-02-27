@@ -286,8 +286,8 @@ class Root:
                     format = "single-xml"
             except NoSuchDocument:
                 raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
-            except fql.ParseError as e:
-                raise cherrypy.HTTPError(404, "FQL parse error: " + str(e))
+            except fql.QueryError as e:
+                raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             prevdocid = doc.id
 
         if not format:
