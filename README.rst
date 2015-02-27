@@ -731,13 +731,13 @@ Instead of the **NEXT** and **PREVIOUS** keywords, a target expression can be us
 
  SELECT FOR SPAN w WHERE text = "the" & w WHERE (pos HAS class == "adj") & w WHERE text = "house"
 
-Within a **SPAN** keyword, an **expansion expression** can be used to select any number, or a certain
-number, of elements. You can do this by appending curly braces right next to
-the element name and specifying the minimum and maximum number of elements. The
-following expression selects from zero up to three adjectives between the words
-"the" and "house"::
+Within a **SPAN** keyword, an **expansion expression** can be used to select
+any number, or a certain number, of elements. You can do this by appending
+curly braces after the element name (but not attached to it) and specifying the
+minimum and maximum number of elements. The following expression selects from
+zero up to three adjectives between the words "the" and "house"::
 
- SELECT FOR SPAN w WHERE text = "the" & w{0,3} WHERE (pos HAS class == "adj") & w WHERE text = "house"
+ SELECT FOR SPAN w WHERE text = "the" & w {0,3} WHERE (pos HAS class == "adj") & w WHERE text = "house"
 
 If you specify only a single number in the curly braces, it will require that
 exact number of elements. To match at least one word up to an unlimited number,
