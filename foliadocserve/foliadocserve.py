@@ -32,7 +32,7 @@ import sys
 import traceback
 from copy import copy
 from collections import defaultdict
-from pynlpl.formats import folia, fql
+from pynlpl.formats import folia, fql, cql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
 
@@ -256,7 +256,13 @@ class Root:
                 if rawquery == "GET":
                     query = "GET"
                 else:
-                    query = fql.Query(rawquery)
+                    if rawquery[:4] == "CQL ":
+                        try:
+                            query = fql.Query(cql.cql2fql(rawquery[4:]))
+                        except cql.SyntaxError as e :
+                            raise fql.SyntaxError("Error in CQL query: " + str(e))
+                    else:
+                        query = fql.Query(rawquery)
                     if query.format == "python":
                         query.format = "xml"
                     if query.action and not docselector:
