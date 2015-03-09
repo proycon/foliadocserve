@@ -94,7 +94,10 @@ class DocStore:
 
     def getfilename(self, key):
         assert isinstance(key, tuple) and len(key) == 2
-        return self.workdir + '/' + key[0] + '/' + key[1] + '.folia.xml'
+        if key[0] == "testflat":
+            return syspath + '/testflat.folia.xml'
+        else:
+            return self.workdir + '/' + key[0] + '/' + key[1] + '.folia.xml'
 
     def load(self,key, forcereload=False):
         if key[0] == "testflat": key = ("testflat", "testflat")
