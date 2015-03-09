@@ -118,6 +118,7 @@ class DocStore:
         if key[0] == "testflat":
             #No need to save the document, instead we run our tests:
             doc.save("/tmp/testflat.xml")
+            log("Running test " + key[1])
             return test(doc, key[1])
         else:
             log("Saving " + self.getfilename(key) + " - " + message)
@@ -331,6 +332,19 @@ class Root:
             if len(results) > 1:
                 raise cherrypy.HTTPError(404, "Multiple results were obtained but format dictates only one can be returned!")
             out = results[0]
+
+
+        if docselector[0] == "testflat":
+            testresult = self.docstore.save(docselector) #won't save, will run tests instead
+            log("Test result: " +str(repr(testresult)))
+
+            #unload the document, we want a fresh copy every time
+            del self.docstore.data[docselector]
+
+            out = json.loads(str(out,'utf-8'))
+            out['testresult'] = testresult[0]
+            out['testmessage'] = testresult[1]
+            out = json.dumps(out)
 
         if self.debug:
             log("[FINAL RESULTS] " + out)

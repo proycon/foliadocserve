@@ -9,7 +9,6 @@ def testequal(value, reference, testmessage,testresult=True):
     return testresult, testmessage
 
 def test(doc, testname, testmessage = ""):
-    log("Running test " + testname)
 
     #load clean document
     #perform test
