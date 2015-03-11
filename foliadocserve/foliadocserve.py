@@ -339,11 +339,12 @@ class Root:
             log("Test result: " +str(repr(testresult)))
 
             #unload the document, we want a fresh copy every time
-            del self.docstore.data[docselector]
+            del self.docstore.data[('testflat','testflat')]
 
             out = json.loads(str(out,'utf-8'))
             out['testresult'] = testresult[0]
             out['testmessage'] = testresult[1]
+            out['queries'] = rawqueries
             out = json.dumps(out)
 
         if self.debug:
