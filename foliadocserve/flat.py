@@ -16,7 +16,7 @@
 #
 #----------------------------------------------------------------
 
-from pynlpl.formats import folia
+from pynlpl.formats import folia,fql
 import json
 import random
 
@@ -44,11 +44,19 @@ def parseresults(results, doc, **kwargs):
         response['elements'] = []
     for queryresults in results: #results are grouped per query, we don't care about the origin now
         for element in queryresults:
-            response['elements'].append({
-                'elementid': element.id if element.id else None,
-                'html': gethtml(element) if isinstance(element, folia.AbstractStructureElement) else None,
-                'annotations': list(getannotations(element)),
-            })
+            if isinstance(element,fql.SpanSet):
+                for e in element:
+                    response['elements'].append({
+                        'elementid': e.id if e.id else None,
+                        'html': gethtml(e) if isinstance(e, folia.AbstractStructureElement) else None,
+                        'annotations': list(getannotations(e)),
+                    })
+            else:
+                response['elements'].append({
+                    'elementid': element.id if element.id else None,
+                    'html': gethtml(element) if isinstance(element, folia.AbstractStructureElement) else None,
+                    'annotations': list(getannotations(element)),
+                })
     return json.dumps(response).encode('utf-8')
 
 

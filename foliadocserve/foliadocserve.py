@@ -306,6 +306,9 @@ class Root:
             except fql.QueryError as e:
                 log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
+            except Exception as e:
+                log("[QUERY FAILED] FoLiA Error: " + str(e))
+                raise cherrypy.HTTPError(404, "FoLiA error: " + str(e))
             prevdocid = doc.id
 
         if not format:
@@ -338,14 +341,16 @@ class Root:
             testresult = self.docstore.save(docselector) #won't save, will run tests instead
             log("Test result: " +str(repr(testresult)))
 
+
+            if format == "flat":
+                out = json.loads(str(out,'utf-8'))
+                out['testresult'] = testresult[0]
+                out['testmessage'] = testresult[1]
+                out['queries'] = rawqueries
+                out = json.dumps(out)
+
             #unload the document, we want a fresh copy every time
             del self.docstore.data[('testflat','testflat')]
-
-            out = json.loads(str(out,'utf-8'))
-            out['testresult'] = testresult[0]
-            out['testmessage'] = testresult[1]
-            out['queries'] = rawqueries
-            out = json.dumps(out)
 
         if self.debug:
             log("[FINAL RESULTS] " + out)
