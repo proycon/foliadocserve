@@ -1,3 +1,7 @@
+import sys
+import traceback
+from pynlpl.formats import folia
+
 def testequal(value, reference, testmessage,testresult=True):
     if value == reference:
         testmessage = testmessage + ": Ok!\n"
@@ -25,10 +29,16 @@ def test(doc, testname, testmessage = ""):
         elif testname in ("correction_tokenannotationchange"):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.6.w.8'].pos(),"LID(onbep,stan,rest)", testmessage + "Testing pos class", testresult)
         elif testname in ("addentity", "correction_addentity"):
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.entity.1'].cls,"per", testmessage + "Testing presence of new entity", testresult)
-            testresult, testmessage = testequal(len(doc['untitleddoc.p.3.s.1.entity.1'].wrefs()),2, testmessage + "Testing span size", testresult)
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.entity.1'].wrefs(0).id, 'untitleddoc.p.3.s.1.w.12' , testmessage + "Testing order (1/2)", testresult)
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.entity.1'].wrefs(1).id, 'untitleddoc.p.3.s.1.w.12b' , testmessage + "Testing order (2/2)", testresult)
+            try:
+                e = next( doc['untitleddoc.p.3.s.1'].select(folia.Entity) )
+                testmessage = "Testing presence of new entity: Ok!\n"
+            except StopIteration:
+                testmessage = "Testing presence of new entity: Failed!\n"
+                testresult = False
+            testresult, testmessage = testequal(e.cls,"per", testmessage + "Testing class of new entity", testresult)
+            testresult, testmessage = testequal(len(e.wrefs()),2, testmessage + "Testing span size", testresult)
+            testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.1.w.12' , testmessage + "Testing order (1/2)", testresult)
+            testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.1.w.12b' , testmessage + "Testing order (2/2)", testresult)
         elif testname in  ("worddelete"):
             testresult, testmessage = testequal('untitleddoc.p.3.s.8.w.10' in doc,False, testmessage + "Testing absence of word in index", testresult)
         elif testname in ( "wordsplit"):
