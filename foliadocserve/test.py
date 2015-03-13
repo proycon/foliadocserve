@@ -67,9 +67,10 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
             testresult, testmessage = testequal(e.wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
         elif testname in ( "newoverlapspan", "correction_newoverlapspan"):
+            gen =  doc['untitleddoc.p.3.s.9'].select(folia.Entity)
             try:
-                e = next( doc['untitleddoc.p.3.s.9'].select(folia.Entity) )
-                e2 = next( doc['untitleddoc.p.3.s.9'].select(folia.Entity) )
+                e = next(gen)
+                e2 = next(gen)
                 testmessage = "Testing presence of new entities: Ok!\n"
             except StopIteration:
                 testmessage = "Testing presence of new entities: Failed!\n"
