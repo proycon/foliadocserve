@@ -29,7 +29,7 @@ setup(
     packages=['foliadocserve'],
     long_description=read('README.rst'),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Topic :: Text Processing :: Linguistic",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
@@ -45,5 +45,5 @@ setup(
         ]
     },
     package_data = {'foliadocserve':['templates/index.html','testflat.folia.xml'] },
-    install_requires=['lxml >= 2.2','pynlpl >= 0.7.0','cherrypy','Jinja2']
+    install_requires=['lxml >= 2.2','pynlpl >= 0.7.2','cherrypy','Jinja2']
 )

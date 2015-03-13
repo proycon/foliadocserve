@@ -151,11 +151,18 @@ def test(doc, testname, testmessage = ""):
             except StopIteration:
                 testmessage = "Testing presence of new correction: Failed!\n"
                 testresult = False
+            if e:
+                try:
+                    e2 = next(e.select(folia.Entity) )
+                    testmessage = "Testing presence of corrected entity: Ok!\n"
+                except StopIteration:
+                    testmessage = "Testing presence of corrected entity: Failed!\n"
+                    testresult = False
             testresult, testmessage = testequal(e.original(0).id, 'untitleddoc.p.3.s.9.entity.1',  testmessage + "Testing whether original span is now under original in correction", testresult)
-            testresult, testmessage = testequal(len(doc['untitleddoc.p.3.s.9.entity.2'].wrefs()),3, testmessage + "Testing span size", testresult)
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.9.entity.2'].wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing order (1/3)", testresult)
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.9.entity.2'].wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
-            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.9.entity.2'].wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
+            testresult, testmessage = testequal(len(e2.wrefs()),3, testmessage + "Testing span size", testresult)
+            testresult, testmessage = testequal(e2.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing order (1/3)", testresult)
+            testresult, testmessage = testequal(e2.wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
+            testresult, testmessage = testequal(e2.wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
         elif testname ==  "correction_spandeletion":
             try:
                 e = next( doc['untitleddoc.p.3.s.9'].select(folia.Correction) )
