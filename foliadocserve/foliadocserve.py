@@ -45,6 +45,9 @@ def fake_wait_for_occupied_port(host, port): return
 class NoSuchDocument(Exception):
     pass
 
+
+VERSION = 0.2
+
 logfile = None
 def log(msg):
     global logfile
@@ -364,7 +367,7 @@ class Root:
     @cherrypy.expose
     def index(self):
         template = env.get_template('index.html')
-        return template.render()
+        return template.render(VERSION=VERSION)
 
 
     @cherrypy.expose
