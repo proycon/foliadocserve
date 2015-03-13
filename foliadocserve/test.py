@@ -20,8 +20,16 @@ def test(doc, testname, testmessage = ""):
     try:
         if testname in ( "textchange", "correction_textchange"):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.2'].text(),"mijn", testmessage + "Testing text", testresult)
-        elif testname in ( "textmerge","correction_textmerge"):
+        elif testname == "textmerge":
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.14'].text(),"wegreden", testmessage + "Testing text", testresult)
+        elif testname == "correction_textmerge":
+            try:
+                e = next( doc['untitleddoc.p.3.s.1'].select(folia.Correction) )
+                testmessage = "Testing presence of new correction: Ok!\n"
+            except StopIteration:
+                testmessage = "Testing presence of new correction: Failed!\n"
+                testresult = False
+            testresult, testmessage = testequal(e.text(),"wegreden", testmessage + "Testing text", testresult)
         elif testname in ("multiannotchange"):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.6.w.8'].text(),"het", testmessage + "Testing text", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.6.w.8'].pos(),"LID(onbep,stan,rest)", testmessage + "Testing pos class", testresult)
