@@ -46,7 +46,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = 0.2
+VERSION = "0.2.1"
 
 logfile = None
 def log(msg):
