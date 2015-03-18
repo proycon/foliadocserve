@@ -59,6 +59,83 @@ def parseresults(results, doc, **kwargs):
                 })
     return json.dumps(response).encode('utf-8')
 
+def gethtmltext(element):
+    """Get the text of an element, but maintain markup elements and convert them to HTML"""
+
+    s = ""
+    if isinstance(element, folia.AbstractTextMarkup): #markup
+        tag = "span"
+        cls = None #CSS class, will be foliatype_foliaclass or foliatype if no folia class exists
+        attribs = ""
+        if isinstance(element, folia.TextMarkupStyle):
+            #we guess how possible class names may be mapped to HTML directly, set-agnostic
+            if element.cls == 'strong':
+                tag = "strong"
+            elif element.cls and element.cls[:2] == 'em':
+                tag = "em"
+            elif element.cls and (element.cls[:4] == 'bold' or element.cls == 'b'):
+                tag = "b"
+            elif element.cls and (element.cls[:6] == 'italic' or element.cls == 'i' or element.cls[:5] == 'slant'):
+                tag = "i"
+            else:
+                cls = "style"
+        elif isinstance(element, folia.TextMarkupError):
+                cls = "error"
+        elif isinstance(element, folia.TextMarkupGap):
+                cls = "gap"
+        elif isinstance(element, folia.TextMarkupString):
+                cls = "str"
+        elif isinstance(element, folia.TextMarkupCorrection):
+                cls = "correction"
+
+        #hyperlinks
+        if element.href:
+            tag = "a"
+            attribs += " href=\"" + element.href + "\""
+
+        if tag == "span" and element.cls:
+            if cls:
+                cls += "_" + element.cls
+            else:
+                cls = element.cls
+
+        if tag:
+            s += "<" + tag
+            if cls:
+                s += " class=\"" + cls + "\""
+            if attribs:
+                s += attribs
+            s += ">"
+        for e in element:
+            if isinstance(e,str):
+                s += e
+            elif isinstance(e, folia.Linebreak):
+                s += "<br/>"
+            elif isinstance(e, folia.AbstractTextMarkup) or isinstance(e, folia.Linebreak): #markup
+                if s: s += e.TEXTDELIMITER #for AbstractMarkup, will usually be ""
+                s += gethtmltext(e)
+        if tag:
+            s += "</" + tag + ">"
+        return s
+    elif isinstance(element, folia.Linebreak):
+        return "<br/>"
+    elif isinstance(element, folia.TextContent):
+        for e in element:
+            if isinstance(e,str):
+                s += e
+            elif isinstance(e, folia.AbstractTextMarkup) or isinstance(e, folia.Linebreak): #markup
+                if s: s += e.TEXTDELIMITER #for AbstractMarkup, will usually be ""
+                s += gethtmltext(e)
+        #hyperlink
+        if element.href:
+            return "<a href=\"" + element.href + "\">" + s + "</a>"
+        else:
+            return s
+    else:
+        return gethtmltext(element.textcontent()) #only explicit text!
+
+
+
 
 def gethtml(element):
     """Converts the element to html skeleton"""
@@ -78,12 +155,9 @@ def gethtml(element):
         for child in element:
             if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
                 s += gethtml(child)
-        if not isinstance(element, folia.Text) and not isinstance(element, folia.Division):
-            try:
-                label = "<span class=\"lbl\">" + element.text() + "</span>"
-            except folia.NoSuchText:
-                label = "<span class=\"lbl\"></span>"
-        else:
+        try:
+            label = "<span class=\"lbl\">" + gethtmltext(element) + "</span>" #only when text is expliclity associated with the element
+        except folia.NoSuchText:
             label = ""
         if not isinstance(element,folia.Word) or (isinstance(element, folia.Word) and element.space):
             label += " "
