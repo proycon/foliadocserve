@@ -791,6 +791,10 @@ add the keyword ``REPEAT``::
 
  SELECT FOR w START w WHERE text = "the" ENDBEFORE w WHERE text = "the" REPEAT
 
+Note that slicing only works on target expressions, therefore the ``FOR`` is
+mandatory. If multiple target expressions are chained, then each may set their
+own slice.
+
 -------------------------------
 Shortcuts
 -------------------------------
