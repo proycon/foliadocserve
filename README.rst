@@ -787,9 +787,9 @@ Or to select all words from the first occurrence of ``the`` to the next::
 
 The query will usually end after the ``END``/``ENDBEFORE`` statement. You may however
 want to continue until the start expression is encountered again, in that case,
-add the keyword ``CONTINUOUS``::
+add the keyword ``REPEAT``::
 
- SELECT FOR w START w WHERE text = "the" ENDBEFORE w WHERE text = "the" CONTINUOUS
+ SELECT FOR w START w WHERE text = "the" ENDBEFORE w WHERE text = "the" REPEAT
 
 -------------------------------
 Shortcuts
