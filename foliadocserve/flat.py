@@ -77,6 +77,8 @@ def gethtmltext(element):
                 tag = "b"
             elif element.cls and (element.cls[:6] == 'italic' or element.cls == 'i' or element.cls[:5] == 'slant'):
                 tag = "i"
+            elif element.cls and (element.cls[:3] == 'lit' or element.cls[:4] == 'verb' or element.cls[:4] == 'code'):
+                tag = "tt"
             else:
                 cls = "style"
         elif isinstance(element, folia.TextMarkupError):
@@ -159,32 +161,47 @@ def gethtml(element):
             label = "<span class=\"lbl\">" + gethtmltext(element) + "</span>" #only when text is expliclity associated with the element
         except folia.NoSuchText:
             label = ""
-        if not isinstance(element,folia.Word) or (isinstance(element, folia.Word) and element.space):
-            label += " "
+        if isinstance(element, folia.Word):
+            if element.space:
+                label += "&nbsp;"
+        elif element.TEXTDELIMITER == " ":
+            label += "&nbsp;"
 
         if not element.id:
             element.id = element.doc.id + "." + element.XMLTAG + ".id" + str(random.randint(1000,999999999))
-        if s:
-            s = "<div id=\"" + element.id + "\" class=\"F " + element.XMLTAG + "\">" + label + s
+
+        #inner wrap
+        if isinstance(element, folia.Paragraph):
+            htmltag = "div" #p doesn't allow div within it
+        elif isinstance(element, folia.Table):
+            htmltag = "table"
+        elif isinstance(element, folia.List):
+            htmltag = "ul"
+        elif isinstance(element, folia.ListItem):
+            htmltag = "li"
+        elif isinstance(element, folia.Row):
+            htmltag = "tr"
+        elif isinstance(element, folia.Cell):
+            htmltag = "td"
         else:
-            s = "<div id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + label
+            htmltag = "div"
+
+        if s:
+            #has children
+            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + "\">" + label + s
+        else:
+            #no children
+            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + label
+
+        #Specific content
         if isinstance(element, folia.Linebreak):
             s += "<br />"
         if isinstance(element, folia.Whitespace):
             s += "<br /><br />"
         elif isinstance(element, folia.Figure):
             s += "<img src=\"" + element.src + "\">"
-        s += "</div>"
-        if isinstance(element, folia.List):
-            s = "<ul>" + s + "</ul>"
-        elif isinstance(element, folia.ListItem):
-            s = "<li>" + s + "</li>"
-        elif isinstance(element, folia.Table):
-            s = "<table>" + s + "</table>"
-        elif isinstance(element, folia.Row):
-            s = "<tr>" + s + "</tr>"
-        elif isinstance(element, folia.Cell):
-            s = "<td>" + s + "</td>"
+
+        s += "</" + htmltag + ">"
         return s
     else:
         raise Exception("Structure element expected, got " + str(type(element)))
