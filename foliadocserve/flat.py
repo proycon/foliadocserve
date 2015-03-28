@@ -273,22 +273,29 @@ def getannotations(element):
             element.id = element.doc.data[0].generate_id(element)
             #and add to index
             element.doc.index[element.id] = element
-        annotation = element.json()
+
+        annotation = element.json(ignorelist=(folia.Word,)) #don't descend into words (do descend for nested span annotations)
         annotation['span'] = True
         annotation['targets'] = [ x.id for x in element.wrefs() ]
+        annotation['spanroles'] = [ {'type':role.XMLTAG, 'words': [x.id for x in role.wrefs()]} for role in element.select(folia.AbstractSpanRole) ]
         annotation['layerparent'] = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
         assert isinstance(annotation, dict)
         yield annotation
     if isinstance(element, folia.AbstractStructureElement):
-        annotation =  element.json(None, False) #no recursion
+        annotation =  element.json(recurse=False)
         annotation['self'] = True #this describes the structure element itself rather than an annotation under it
         annotation['targets'] = [ element.id ]
         if isinstance(element, folia.Word):
-            prevword = element.previous(folia.Word, None)
+            prevword = element.previous(folia.Word,None)
             if prevword:
                 annotation['previousword'] =  prevword.id
             else:
                 annotation['previousword'] = None
+            nextword = element.next(folia.Word,None )
+            if nextword:
+                annotation['nextword'] =  nextword.id
+            else:
+                annotation['nextword'] = None
         yield annotation
     if isinstance(element, folia.AbstractStructureElement) or isinstance(element, folia.AbstractAnnotationLayer) or isinstance(element, folia.AbstractSpanAnnotation) or isinstance(element, folia.Suggestion):
         for child in element:

@@ -771,6 +771,25 @@ we want an NP to the left of a PP::
 
  SELECT su WHERE class = "np" AND (NEXT su WHERE class = "pp") IN su WHERE class = "vp" RETURN target
 
+-------------------------------
+Slicing
+-------------------------------
+
+FQL target expressions may be sliced using the ``START`` and ``END`` or
+``ENDBEFORE`` keywords (the former is inclusive, the latter is not). They take
+a selection expression. You can for instance slice between two specific IDs::
+
+ SELECT FOR w START ID "first.element.id" END ID "last.element.id"
+
+Or to select all words from the first occurrence of ``the`` to the next::
+
+ SELECT FOR w START w WHERE text = "the" ENDBEFORE w WHERE text = "the"
+
+The query will usually end after the ``END``/``ENDBEFORE`` statement. You may however
+want to continue until the start expression is encountered again, in that case,
+add the keyword ``CONTINUOUS``::
+
+ SELECT FOR w START w WHERE text = "the" ENDBEFORE w WHERE text = "the" CONTINUOUS
 
 -------------------------------
 Shortcuts
@@ -806,6 +825,7 @@ can add a word with text like this::
 Or using the shortcut::
 
     ADD w WITH text "hello" IN ID some.sentence
+
 
 
 
