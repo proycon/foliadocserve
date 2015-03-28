@@ -157,9 +157,13 @@ def gethtml(element):
         for child in element:
             if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
                 s += gethtml(child)
+
+
         try:
             label = "<span class=\"lbl\">" + gethtmltext(element) + "</span>" #only when text is expliclity associated with the element
+            annotationbox = "<span class=\"ab\"></span>"
         except folia.NoSuchText:
+            annotationbox = ""
             label = ""
         if isinstance(element, folia.Word):
             if element.space:
@@ -188,10 +192,10 @@ def gethtml(element):
 
         if s:
             #has children
-            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + "\">" + label + s
+            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + "\">" + annotationbox + label + s
         else:
             #no children
-            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + label
+            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + annotationbox + label
 
         #Specific content
         if isinstance(element, folia.Linebreak):
@@ -206,7 +210,7 @@ def gethtml(element):
     else:
         raise Exception("Structure element expected, got " + str(type(element)))
 
-def getannotations(element, previouswordid = None):
+def getannotations(element):
     if isinstance(element, folia.Correction):
         if not element.id:
             #annotator requires IDS on corrections, make one on the fly
@@ -272,22 +276,25 @@ def getannotations(element, previouswordid = None):
         annotation = element.json()
         annotation['span'] = True
         annotation['targets'] = [ x.id for x in element.wrefs() ]
+        annotation['layerparent'] = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
         assert isinstance(annotation, dict)
         yield annotation
     if isinstance(element, folia.AbstractStructureElement):
         annotation =  element.json(None, False) #no recursion
         annotation['self'] = True #this describes the structure element itself rather than an annotation under it
         annotation['targets'] = [ element.id ]
+        if isinstance(element, folia.Word):
+            prevword = element.previous(folia.Word, None)
+            if prevword:
+                annotation['previousword'] =  prevword.id
+            else:
+                annotation['previousword'] = None
         yield annotation
     if isinstance(element, folia.AbstractStructureElement) or isinstance(element, folia.AbstractAnnotationLayer) or isinstance(element, folia.AbstractSpanAnnotation) or isinstance(element, folia.Suggestion):
         for child in element:
-            for x in getannotations(child, previouswordid):
+            for x in getannotations(child):
                 assert isinstance(x, dict)
-                if previouswordid and not 'previousword' in x:
-                    x['previousword'] = previouswordid
                 yield x
-            if isinstance(child, folia.Word):
-                previouswordid = child.id
 
 def getdeclarations(doc):
     for annotationtype, set in doc.annotations:
