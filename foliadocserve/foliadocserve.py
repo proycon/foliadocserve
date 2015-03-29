@@ -385,6 +385,8 @@ class Root:
                 if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
                     query = "GET"
+                elif rawquery == "PROBE":
+                    query = "PROBE" #gets no content data at all, but allows returning associated metadata used by FLAT, forces FLAT format
                 else:
                     if rawquery[:4] == "CQL ":
                         try:
@@ -426,6 +428,9 @@ class Root:
                 elif query == "GET":
                     results.append(doc.xmlstring())
                     format = "single-xml"
+                elif query == "PROBE":
+                    #no queries to perform
+                    format = "flat"
                 else:
                     raise Exception("Invalid query")
             except NoSuchDocument:
@@ -563,7 +568,7 @@ class Root:
     def checkexpireconcurrency(self):
         #Delete concurrency information for sessions that fail to poll within the expiration time (they almost certainly closed the page/browser)
         deletelist = []
-        if d in self.docstore.lastaccess:
+        for d in self.docstore.lastaccess:
             for sid in self.docstore.updateq[d]:
                 if sid in self.docstore.lastaccess[d]:
                     lastaccess = self.docstore.lastaccess[d][sid]

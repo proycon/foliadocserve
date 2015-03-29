@@ -51,6 +51,10 @@
             h1 {
                 text-align: center;
             }
+            div.options {
+                float: right;
+                font-size: 80%;
+            }
         </style>
         <script type="text/javascript" charset="utf-8">
             $(document).ready(function(){
@@ -97,10 +101,17 @@
                     });
                 });
                 $('#submitquery').click(function() {
+                    var data = {'query': $('#query').val()};
+                    if ($('#flatattribs').is(':checked')) {
+                        data['setdefinitions'] = 1;
+                        data['declarations'] = 1;
+                        data['toc'] = 1;
+                        data['slices'] = 'p:25,s:100,entry:100,event:100';
+                    }
                      $.ajax({
                         url: "query/",
                         type: 'POST',
-                        data: {'query': $('#query').val()},
+                        data: data,
                         dataType: "text",
                         success: function(result) {
                             $("#error").hide();
@@ -143,6 +154,9 @@
                 <h3>FQL Query</h3>
                 <p>(<a href="https://github.com/proycon/foliadocserve/blob/master/README.rst">documentation</a>)</p>
                 <textarea id="query"></textarea>
+                <div class="options">
+                 Return all extra data for FLAT format <input id="flatattribs" type="checkbox" title="For computed associated data and no content data: USE x/y PROBE" />
+                </div>
                 <button id="submitquery">Submit query</button>
             </div>
             <div>

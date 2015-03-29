@@ -34,7 +34,34 @@ def getflatargs(params):
         args['setdefinitions'] = bool(int(params['setdefinitions']))
     else:
         args['setdefinitions'] = False
+    if 'toc' in params:
+        args['toc'] = bool(int(params['toc']))
+    else:
+        args['toc'] = False
+    if 'slices' in params:
+        args['slices'] = [ ( x.split(':')[0], int(x.split(':')[1])) for x in  params['slices'].split(',') ]  #comma separated list of xmltag:slicesize
+    else:
+        args['slices'] = ""
     return args
+
+
+
+def gettoc(element, processed = set()):
+    toc = [] #nested recursive list of (div.id, headtext, [toc])   (where toc is the same recursive part)
+    for head in element.select(folia.Head):
+        division = head.ancestor(folia.Division)
+        if division:
+            if division.id not in processed:
+                processed.add(division.id)
+                toc.append( {'id': division.id, 'text': head.text(), 'toc': gettoc(division, processed)} )
+    return toc
+
+
+def getslices(doc, Class, size=100):
+    for i, element in enumerate(doc.select(Class)):
+        if i % size == 0:
+            yield element.id
+
 
 def parseresults(results, doc, **kwargs):
     response = {}
@@ -42,11 +69,18 @@ def parseresults(results, doc, **kwargs):
         response['declarations'] = tuple(getdeclarations(doc))
     if 'setdefinitions' in kwargs and kwargs['setdefinitions']:
         response['setdefinitions'] =  getsetdefinitions(doc)
+    if 'toc' in kwargs and kwargs['toc']:
+        response['toc'] =  gettoc(doc)
+    if 'slices' in kwargs and kwargs['slices']:
+        response['slices'] = {}
+        for tag, size in kwargs['slices']:
+            Class = folia.XML2CLASS[tag]
+            response['slices'][tag] = list(getslices(doc, Class, size))
 
     if results:
         response['elements'] = []
 
-    bookkeeper = Bookkeeper()
+    bookkeeper = Bookkeeper() #will abort with partial result if too much data is returned
     for queryresults in results: #results are grouped per query, we don't care about the origin now
         for element in queryresults:
             if isinstance(element,fql.SpanSet):
