@@ -58,7 +58,7 @@
                 $('#error').hide();
                 $('#listnamespaces').click(function() {
                      $.ajax({
-                        url: "namespaces/",
+                        url: "namespaces/" + $('#namespace').val(),
                         dataType: "json",
                         success: function(result) {
                             $("#error").hide();
@@ -78,8 +78,7 @@
                 });
                 $('#listdocs').click(function() {
                      $.ajax({
-                        url: "documents/",
-                        data: {'namespace': $('#namespace').val() },
+                        url: "documents/" + $('#namespace').val(),
                         dataType: "json",
                         success: function(result) {
                             $("#error").hide();
@@ -134,9 +133,9 @@
             <div>
                 <h3>Document Management</h3>
                 <hr />
-                <button id="listnamespaces">List Namespaces</button><br />
-                <hr />
-                Namespace: <input id="namespace" /><button id="listdocs">List Documents</button> 
+                Namespace: <input id="namespace" />
+                <button id="listnamespaces">List Namespaces</button>
+                <button id="listdocs">List Documents</button> 
                 <hr />
                 File: <input type="file" name="file" /><button>Upload document</button>
             </div>

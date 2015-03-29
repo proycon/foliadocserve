@@ -30,6 +30,8 @@ import datetime
 import subprocess
 import sys
 import traceback
+import threading
+import queue
 from copy import copy
 from collections import defaultdict
 from pynlpl.formats import folia, fql, cql
@@ -46,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 
 logfile = None
 def log(msg):
@@ -79,20 +81,99 @@ def parsegitlog(data):
         yield commit, date, msg
 
 
+
+
+class BackgroundTaskQueue(cherrypy.process.plugins.SimplePlugin):
+    """For background tasks that need not tie-up the request process"""
+
+    thread = None
+    def __init__(self, bus, qsize=100, qwait=2, safe_stop=True):
+        cherrypy.process.plugins.SimplePlugin.__init__(self, bus)
+        self.q = queue.Queue(qsize)
+        self.qwait = qwait
+        self.safe_stop = safe_stop
+
+    def start(self):
+        self.running = True
+        if not self.thread:
+            self.thread = threading.Thread(target=self.run)
+            self.thread.start()
+
+    def stop(self):
+        if self.safe_stop:
+            self.running = "draining"
+        else:
+            self.running = False
+
+        if self.thread:
+            self.thread.join()
+            self.thread = None
+        self.running = False
+
+    def run(self):
+        while self.running:
+            try:
+                try:
+                    func, args, kwargs = self.q.get(block=True, timeout=self.qwait)
+                except queue.Empty:
+                    if self.running == "draining":
+                        return
+                    continue
+                else:
+                    func(*args, **kwargs)
+                    if hasattr(self.q, 'task_done'):
+                        self.q.task_done()
+            except:
+                self.bus.log("Error in BackgroundTaskQueue %r." % self, level=40, traceback=True)
+
+    def put(self, func, *args, **kwargs):
+        """Schedule the given func to be run."""
+        self.q.put((func, args, kwargs))
+
+class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
+    """Calls docstore.autounload() every tick"""
+
+    thread = None
+    def __init__(self, bus, docstore, interval=60):
+        self.docstore = docstore
+        self.interval = interval
+        self.safe_stop = True
+        cherrypy.process.plugins.SimplePlugin.__init__(self, bus)
+
+    def start(self):
+        self.running = True
+        if not self.thread:
+            self.thread = threading.Thread(target=self.run)
+            self.thread.start()
+
+    def stop(self):
+        if self.safe_stop:
+            self.running = "draining"
+        else:
+            self.running = False
+
+        if self.thread:
+            self.thread.join()
+            self.thread = None
+        self.running = False
+
+    def run(self):
+        while self.running:
+            self.docstore.autounload()
+            time.sleep(self.interval)
+
+
 class DocStore:
-    def __init__(self, workdir, expiretime):
+    def __init__(self, workdir, expiretime, git=False):
         log("Initialising document store in " + workdir)
         self.workdir = workdir
         self.expiretime = expiretime
         self.data = {}
-        self.lastchange = {}
-        self.updateq = defaultdict(dict) #update queue, (namespace,docid) => session_id => [folia element id], for concurrency
+        self.updateq = defaultdict(lambda: defaultdict(set)) #update queue, (namespace,docid) => session_id => set(folia element id), for concurrency
         self.lastaccess = defaultdict(dict) # (namespace,docid) => session_id => time
+        self.changelog = defaultdict(list) # (namespace,docid) => [changemessage]
         self.setdefinitions = {}
-        if os.path.exists(self.workdir + "/.git"):
-            self.git = True
-        else:
-            self.git = False
+        self.git = git
         super().__init__()
 
     def getfilename(self, key):
@@ -101,6 +182,11 @@ class DocStore:
             return syspath + '/testflat.folia.xml'
         else:
             return self.workdir + '/' + key[0] + '/' + key[1] + '.folia.xml'
+
+    def getpath(self, key):
+        assert isinstance(key, tuple) and len(key) == 2
+        return self.workdir + '/' + key[0]
+
 
     def load(self,key, forcereload=False):
         if key[0] == "testflat": key = ("testflat", "testflat")
@@ -111,12 +197,12 @@ class DocStore:
                 raise NoSuchDocument
             log("Loading " + filename)
             self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
-            self.lastchange[key] = time.time()
+            self.lastaccess[key]['NOSID'] = time.time()
         return self.data[key]
 
 
 
-    def save(self, key, message = "unspecified change"):
+    def save(self, key, message = ""):
         doc = self[key]
         if key[0] == "testflat":
             #No need to save the document, instead we run our tests:
@@ -127,20 +213,36 @@ class DocStore:
             log("Saving " + self.getfilename(key) + " - " + message)
             doc.save()
             if self.git:
-                log("Doing git commit for " + self.getfilename(key) + " - " + message)
-                os.chdir(self.workdir)
-                r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message + "\"")
+                if os.path.exists(self.workdir + '/.git'):
+                    # entire workdir is one git repo (old style)
+                    dir = self.workdir
+                    os.chdir(self.workdir)
+                else:
+                    dir = self.getpath(key)
+                    os.chdir(dir)
+                    if not os.path.exists(dir + '/.git'):
+                        log("Initialising git repository in  " + dir)
+                        r = os.system("git init")
+                        if r != 0:
+                            log("ERROR during git init of " + dir)
+                            return
+                message = "\n".join(self.changelog[key]) + "\n" + message
+                self.changelog[key] = [] #reset changelog
+                message = message.strip("\n")
+                log("Doing git commit for " + self.getfilename(key) + " -- " + message.replace("\n", " -- "))
+                r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
-                    log("Error during git add/commit of " + self.getfilename(key))
+                    log("ERROR during git add/commit of " + self.getfilename(key))
 
 
     def unload(self, key, save=True):
         if key in self:
             if save:
-                self.save(key,"Saving unsaved changes")
+                self.save(key)
             log("Unloading " + "/".join(key))
             del self.data[key]
-            del self.lastchange[key]
+            del self.lastaccess[key]
+            del self.changelog[key]
         else:
             raise NoSuchDocument
 
@@ -179,30 +281,33 @@ class DocStore:
 
     def autounload(self, save=True):
         unload = []
-        for key, t in self.lastchange.items():
-            if t > time.time() + self.expiretime:
-                unload.append(key)
+        for d in self.lastaccess:
+            for sid, t in self.lastaccess[d].items():
+                if t > time.time() + self.expiretime:
+                    unload.append(key)
 
         for key in unload:
             self.unload(key, save)
 
 
+def validatenamespace(namespace):
+    return namespace.replace('..','').replace('"','').replace(' ','_').replace(';','').replace('&','').strip('/')
 
 def getdocumentselector(query):
     if query.startswith("USE "):
         end = query[4:].index(' ') + 4
         if end >= 0:
             try:
-                namespace,docid = query[4:end].split("/")
+                namespace,docid = query[4:end].rsplit("/",1)
             except:
                 raise fql.SyntaxError("USE statement takes namespace/docid pair")
-            return (namespace,docid), query[end+1:]
+            return (validatenamespace(namespace),docid), query[end+1:]
         else:
             try:
-                namespace,docid = query[4:end].split("/")
+                namespace,docid = query[4:end].rsplit("/",1)
             except:
                 raise fql.SyntaxError("USE statement takes namespace/docid pair")
-            return (namespace,docid), ""
+            return (validatenamespace(namespace),docid), ""
     return None, query
 
 
@@ -211,28 +316,46 @@ def getdocumentselector(query):
 
 
 class Root:
-    def __init__(self,docstore,args):
+    def __init__(self,docstore,bgtask,args):
         self.docstore = docstore
+        self.bgtask = bgtask
         self.workdir = args.workdir
         self.debug = args.debug
 
-    def createsession(self,namespace,docid, sid, results):
+    def createsession(self,namespace,docid, sid=None, results=None):
+        """Create or update a session"""
         if sid[-5:] != 'NOSID':
             log("Creating session " + sid + " for " + "/".join((namespace,docid)))
             self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
-            self.docstore.updateq[(namespace,docid)][sid] = [ result.id for result in results if result.id ]
+            self.docstore.updateq[(namespace,docid)][sid] #will create it if it does not exist yet, does nothing otherwise, other sessions will write here what we need to update
+            for othersid in self.docstore.updateq[(namespace,docid)]:
+                if othersid != sid:
+                    for result in results:
+                        if result.id:
+                            self.docstore.updateq[(namespace,docid)][othersid].add(result.id)
+
+    def addtochangelog(self, doc, query, docselector):
+        if self.docstore.git:
+            if query.action and query.action.action != "SELECT":
+                if query.action.focus and query.action.focus.Class:
+                    changemsg = query.action.action.lower() + " on " + query.actions.focus.Class.XMLTAG
+                    if query.action.assignments and query.action.assignments['annotator']:
+                        changemsg += " by " + query.action.assignments['annotator']
+                    self.docstore.changelog[docselector].append(changemsg)
 
     @cherrypy.expose
-    def createnamespace(self, namespace):
-        namepace = namespace.replace('/','').replace('..','')
-        try:
-            os.mkdir(self.workdir + '/' + namespace)
-        except:
-            pass
+    def createnamespace(self, *namespaceargs):
+        namespace = validatenamespace('/'.join(namespaceargs))
+        if not os.path.exists(self.workdir + '/' + namespace):
+            try:
+                os.makedirs(self.workdir + '/' + namespace)
+            except:
+                raise cherrypy.HTTPError(403, "Unable to create namespace: " + namespace)
         cherrypy.response.headers['Content-Type']= 'text/plain'
         return "ok"
 
-    ###NEW###
+
+
 
     @cherrypy.expose
     def query(self, **kwargs):
@@ -252,14 +375,14 @@ class Root:
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
 
-        prevdocselector = None
-        sessiondocselector = None
+        prevdocsel = None
+        sessiondocsel = None
         queries = []
         for rawquery in rawqueries:
             try:
-                docselector, rawquery = getdocumentselector(rawquery)
-                if not docselector: docselector = prevdocselector
-                if not sessiondocselector: sessiondocselector = docselector
+                docsel, rawquery = getdocumentselector(rawquery)
+                if not docsel: docsel = prevdocsel
+                if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
                     query = "GET"
                 else:
@@ -272,15 +395,15 @@ class Root:
                         query = fql.Query(rawquery)
                     if query.format == "python":
                         query.format = "xml"
-                    if query.action and not docselector:
+                    if query.action and not docsel:
                         raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
-                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
+                log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
                 log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
 
             queries.append( (query, rawquery))
-            prevdocselector = docselector
+            prevdocsel = docsel
 
         results = []
         doc = None
@@ -288,8 +411,9 @@ class Root:
         multidoc = False #are the queries over multiple distinct documents?
         for query, rawquery in queries:
             try:
-                doc = self.docstore[docselector]
-                log("[QUERY ON " + "/".join(docselector)  + "] " + str(rawquery))
+                doc = self.docstore[docsel]
+                self.docstore.lastaccess[docsel][sid] = time.time()
+                log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
                 if isinstance(query, fql.Query):
                     if prevdocid and doc.id != prevdocid:
                         multidoc = True
@@ -298,6 +422,7 @@ class Root:
                     if self.debug:
                         log("[QUERY RESULT] " + result)
                     format = query.format
+                    self.addtochangelog(doc, query, docsel)
                 elif query == "GET":
                     results.append(doc.xmlstring())
                     format = "single-xml"
@@ -305,7 +430,7 @@ class Root:
                     raise Exception("Invalid query")
             except NoSuchDocument:
                 log("[QUERY FAILED] No such document")
-                raise cherrypy.HTTPError(404, "Document not found: " + docselector[0] + "/" + docselector[1])
+                raise cherrypy.HTTPError(404, "Document not found: " + docsel[0] + "/" + docsel[1])
             except fql.QueryError as e:
                 log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
@@ -327,8 +452,8 @@ class Root:
         elif format == "json":
             out = "[" + ",".join(results) + "]"
         elif format == "flat":
-            if sid != 'NOSID' and sessiondocselector and not multidoc:
-                self.createsession(sessiondocselector[0],sessiondocselector[1],sid, results)
+            if sid != 'NOSID' and sessiondocsel and not multidoc:
+                self.createsession(sessiondocsel[0],sessiondocsel[1],sid, results)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
                 raise "{} //multidoc response, not producing results"
@@ -340,8 +465,8 @@ class Root:
             out = results[0]
 
 
-        if docselector[0] == "testflat":
-            testresult = self.docstore.save(docselector) #won't save, will run tests instead
+        if docsel[0] == "testflat":
+            testresult = self.docstore.save(docsel) #won't save, will run tests instead
             log("Test result: " +str(repr(testresult)))
 
 
@@ -371,15 +496,20 @@ class Root:
 
 
     @cherrypy.expose
-    def getdochistory(self, namespace, docid):
-        namepace = namespace.replace('/','').replace('..','').replace(';','').replace('&','')
-        docid = docid.replace('/','').replace('..','').replace(';','').replace('&','')
+    def getdochistory(self, *args):
+        namespace, docid = self.docselector(*args)
         log("Returning history for document " + "/".join((namespace,docid)))
         cherrypy.response.headers['Content-Type'] = 'application/json'
-        if self.docstore.git and (namespace,docid) in self.docstore:
+        if not os.path.exists(self.docstore.getfilename((namespace,docid))):
+            raise cherrypy.HTTPError(404, "Document not found")
+        if self.docstore.git:
             log("Invoking git log " + namespace+"/"+docid + ".folia.xml")
-            os.chdir(self.workdir)
-            proc = subprocess.Popen("git log " + namespace + "/" + docid + ".folia.xml", stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,cwd=self.workdir)
+            if os.path.exists(self.workdir + '/.git'):
+                dir = self.workdir
+            else:
+               dir = self.docstore.getpath((namespace,doc))
+            os.chdir(dir)
+            proc = subprocess.Popen("git log " + docid + ".folia.xml", stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,cwd=dir)
             outs, errs = proc.communicate()
             if errs: log("git log errors? " + errs.decode('utf-8'))
             d = {'history':[]}
@@ -394,7 +524,20 @@ class Root:
             return json.dumps({'history': []}).encode('utf-8')
 
     @cherrypy.expose
-    def revert(self, namespace, docid, commithash):
+    def save(self, *args, message=""):
+        namespace, docid = self.docselector(*args)
+        if (namespace,docid) in self.docstore:
+            self.bgtask.put( self.docstore.save, (namespace,docid), message)
+            return "scheduling save"
+        else:
+            return "nothing to save"
+
+
+    @cherrypy.expose
+    def revert(self, *args, commithash=None):
+        if not commithash:
+            raise cherrypy.HTTPError(400, "Expected commithash")
+
         if not all([ x.isalnum() for x in commithash ]):
             return b"{}"
 
@@ -418,28 +561,42 @@ class Root:
 
 
     def checkexpireconcurrency(self):
-        #purge old buffer
+        #Delete concurrency information for sessions that fail to poll within the expiration time (they almost certainly closed the page/browser)
         deletelist = []
-        for d in self.docstore.updateq:
-            if d in self.docstore.lastaccess:
-                for s in self.docstore.updateq[d]:
-                    if s in self.docstore.lastaccess[d]:
-                        lastaccess = self.docstore.lastaccess[d][s]
-                        if time.time() - lastaccess > 3600*12:  #expire after 12 hours
-                            deletelist.append( (d,s) )
-        for d,s in deletelist:
-            log("Expiring session " + s + " for " + "/".join(d))
-            del self.docstore.lastaccess[d][s]
-            del self.docstore.updateq[d][s]
-            if len(self.docstore.lastaccess[d]) == 0:
-                del self.docstore.lastaccess[d]
-            if len(self.docstore.updateq[d]) == 0:
-                del self.docstore.updateq[d]
+        if d in self.docstore.lastaccess:
+            for sid in self.docstore.updateq[d]:
+                if sid in self.docstore.lastaccess[d]:
+                    lastaccess = self.docstore.lastaccess[d][sid]
+                    if time.time() - lastaccess > self.docstore.expiretime:
+                        deletelist.append( (d,sid) )
+        for d,sid in deletelist:
+            if sid != 'NOSID':
+                log("Expiring session " + sid + " for " + "/".join(d))
+                del self.docstore.lastaccess[d][sid]
+                del self.docstore.updateq[d][sid]
+                if len(self.docstore.lastaccess[d]) == 0:
+                    del self.docstore.lastaccess[d]
+                if len(self.docstore.updateq[d]) == 0:
+                    del self.docstore.updateq[d]
+
+
+    def docselector(self, *args):
+        try:
+            docid = args[-1]
+            namespace = validatenamespace('/'.join(args[:-1]))
+            if not namespace or not docid:
+                raise
+        except:
+            raise cherrypy.HTTPError(404, "Expected namespace/docid")
+        docid = docid.replace('/','').replace('..','').replace(';','').replace('&','').replace(' ','_')
+        return namespace, docid
 
 
 
     @cherrypy.expose
-    def poll(self, namespace, docid):
+    def poll(self, *args):
+        namespace, docid = self.docselector(*args)
+
         if 'X-sessionid' in cherrypy.request.headers:
             sid = cherrypy.request.headers['X-sessionid']
         else:
@@ -449,32 +606,40 @@ class Root:
             return "{}" #no polling for testflat
 
         self.checkexpireconcurrency()
+
         if sid in self.docstore.updateq[(namespace,docid)]:
             ids = self.docstore.updateq[(namespace,docid)][sid]
-            self.docstore.updateq[(namespace,docid)][sid] = []
+            self.docstore.updateq[(namespace,docid)][sid] = set() #reset
             if ids:
                 cherrypy.log("Succesful poll from session " + sid + " for " + "/".join((namespace,docid)) + ", returning IDs: " + " ".join(ids))
                 doc = self.docstore[(namespace,docid)]
                 results = [ doc[id] for id in ids if id in doc ]
-                return parseresults(results, doc, **{'sid':sid})
+                return parseresults(results, doc, **{'sid':sid, 'lastaccess': self.docstore.lastaccess[(namespace,docid)]})
             else:
-                return "{}"
+                return json.dumps({'sessions': len([s for s in self.docstore.lastaccess[(namespace,docid)] if s != 'NOSID' ])}).encode('utf-8')
         else:
-            return "{}"
+            return json.dumps({'sessions': len([s for s in self.docstore.lastaccess[(namespace,docid)] if s != 'NOSID' ])}).encode('utf-8')
 
 
 
     @cherrypy.expose
-    def namespaces(self):
-        namespaces = [ x for x in os.listdir(self.docstore.workdir) if x != "testflat" and x[0] != "." ]
+    def namespaces(self, *namespaceargs):
+        namespace = validatenamespace('/'.join(namespaceargs))
+        try:
+            namespaces = [ x for x in os.listdir(os.path.join(self.docstore.workdir,namespace)) if x != "testflat" and x[0] != "." and os.path.isdir(os.path.join(self.docstore.workdir,namespace,x)) ]
+        except FileNotFoundError:
+            raise cherrypy.HTTPError(404, "Namespace not found: " + str(namespace))
         return json.dumps({
                 'namespaces': namespaces
         })
 
     @cherrypy.expose
-    def documents(self, namespace):
-        namepace = namespace.replace('/','').replace('..','')
-        docs = [ x for x in os.listdir(self.docstore.workdir + "/" + namespace) if x[-10:] == ".folia.xml" ]
+    def documents(self, *namespaceargs):
+        namespace = validatenamespace('/'.join(namespaceargs))
+        try:
+            docs = [ x for x in os.listdir(self.docstore.workdir + "/" + namespace) if x[-10:] == ".folia.xml" ]
+        except FileNotFoundError:
+            raise cherrypy.HTTPError(404, "Namespace not found: " + str(namespace))
         return json.dumps({
                 'documents': docs,
                 'timestamp': { x:os.path.getmtime(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  },
@@ -483,7 +648,8 @@ class Root:
 
 
     @cherrypy.expose
-    def upload(self, namespace):
+    def upload(self, *namespaceargs):
+        namespace = validatenamespace('/'.join(namespaceargs))
         log("In upload, namespace=" + namespace)
         response = {}
         cl = cherrypy.request.headers['Content-Length']
@@ -520,18 +686,24 @@ def main():
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
     parser.add_argument('-l','--logfile', type=str,help="Log file", action='store',default="foliadocserve.log",required=False)
     parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
+    parser.add_argument('--git',help="Enable versioning control using git (separate git repositories will be automatically created for each namespace, OR you can make one global one in the workdir manually)", action='store_true',default=False)
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
+    parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
+    parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
     logfile = open(args.logfile,'w',encoding='utf-8')
     os.chdir(args.workdir)
-    #args.storeconst, args.dataset, args.num, args.bar
     cherrypy.config.update({
-        'server.socket_host': '0.0.0.0',
+        'server.socket_host': args.host,
         'server.socket_port': args.port,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
-    docstore = DocStore(args.workdir, args.expirationtime)
-    cherrypy.quickstart(Root(docstore,args))
+    docstore = DocStore(args.workdir, args.expirationtime, args.git)
+    bgtask = BackgroundTaskQueue(cherrypy.engine)
+    bgtask.subscribe()
+    autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
+    autounloader.subscribe()
+    cherrypy.quickstart(Root(docstore,bgtask,args))
 
 if __name__ == '__main__':
     main()
