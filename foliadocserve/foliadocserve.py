@@ -159,6 +159,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
     def run(self):
         while self.running:
+            print("tick, ", len(self.docstore),file=sys.stderr)
             self.docstore.autounload()
             time.sleep(self.interval)
 
@@ -172,6 +173,8 @@ class DocStore:
         self.updateq = defaultdict(lambda: defaultdict(set)) #update queue, (namespace,docid) => session_id => set(folia element id), for concurrency
         self.lastaccess = defaultdict(dict) # (namespace,docid) => session_id => time
         self.changelog = defaultdict(list) # (namespace,docid) => [changemessage]
+
+        self.lock = set() #will contain (namespace,docid) of temporarily locked documents, loading/unloading/saving are blocking operations
         self.setdefinitions = {}
         self.git = git
         super().__init__()
@@ -188,16 +191,33 @@ class DocStore:
         return self.workdir + '/' + key[0]
 
 
+    def use(self, key):
+        while key in self.lock:
+            time.sleep(0.1)
+        self.lock.add(key)
+
+    def done(self, key):
+        self.lock.remove(key)
+
+
     def load(self,key, forcereload=False):
         if key[0] == "testflat": key = ("testflat", "testflat")
+        self.use(key)
         filename = self.getfilename(key)
         if not key in self or forcereload:
             if not os.path.exists(filename):
                 log("File not found: " + filename)
+                self.done(key)
                 raise NoSuchDocument
             log("Loading " + filename)
-            self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
+            try:
+                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
+            except Exception as e:
+                log("Error reading file " + filename + ": " + str(e))
+                self.done(key)
+                raise
             self.lastaccess[key]['NOSID'] = time.time()
+        self.done(key)
         return self.data[key]
 
 
@@ -210,6 +230,7 @@ class DocStore:
             log("Running test " + key[1])
             return test(doc, key[1])
         else:
+            self.use(key)
             log("Saving " + self.getfilename(key) + " - " + message)
             doc.save()
             if self.git:
@@ -225,6 +246,7 @@ class DocStore:
                         r = os.system("git init")
                         if r != 0:
                             log("ERROR during git init of " + dir)
+                            self.done(key)
                             return
                 message = "\n".join(self.changelog[key]) + "\n" + message
                 self.changelog[key] = [] #reset changelog
@@ -233,18 +255,20 @@ class DocStore:
                 r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git add/commit of " + self.getfilename(key))
+            self.done(key)
 
 
     def unload(self, key, save=True):
         if key in self:
             if save:
                 self.save(key)
+            self.use(key) #save set its own lock
             log("Unloading " + "/".join(key))
             del self.data[key]
             del self.lastaccess[key]
-            del self.changelog[key]
-        else:
-            raise NoSuchDocument
+            if key in self.changelog:
+                del self.changelog[key]
+            self.done(key)
 
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
@@ -283,8 +307,8 @@ class DocStore:
         unload = []
         for d in self.lastaccess:
             for sid, t in self.lastaccess[d].items():
-                if t > time.time() + self.expiretime:
-                    unload.append(key)
+                if time.time() - t > self.expiretime:
+                    unload.append(d)
 
         for key in unload:
             self.unload(key, save)
@@ -382,6 +406,7 @@ class Root:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
                 if not docsel: docsel = prevdocsel
+                self.docstore.use(docsel)
                 if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
                     query = "GET"
@@ -403,6 +428,8 @@ class Root:
                 log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
                 log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
+            finally:
+                self.docstore.done(docsel)
 
             queries.append( (query, rawquery))
             prevdocsel = docsel
