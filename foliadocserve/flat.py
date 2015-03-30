@@ -88,14 +88,16 @@ def parseresults(results, doc, **kwargs):
                     response['elements'].append({
                         'elementid': e.id if e.id else None,
                         'html': gethtml(e,bookkeeper) if isinstance(e, folia.AbstractStructureElement) else None,
-                        'annotations': list(getannotations(e,bookkeeper)),
+                        'annotations': list(getannotations(e,bookkeeper.reset())),
                     })
             else:
                 response['elements'].append({
                     'elementid': element.id if element.id else None,
                     'html': gethtml(element,bookkeeper) if isinstance(element, folia.AbstractStructureElement) else None,
-                    'annotations': list(getannotations(element,bookkeeper)),
+                    'annotations': list(getannotations(element,bookkeeper.reset())),
                 })
+            if bookkeeper.stop:
+                break
     response['aborted'] = bookkeeper.stop
     if 'lastaccess' in kwargs:
         response['sessions'] =  len([s for s in kwargs['lastaccess'] if s != 'NOSID' ])
@@ -184,6 +186,10 @@ class Bookkeeper:
         self.stop = False
         self.stopat = None
 
+    def reset(self):
+        self.stop = False
+        return self
+
 
 def gethtml(element, bookkeeper):
     """Converts the element to html skeleton"""
@@ -264,7 +270,9 @@ def gethtml(element, bookkeeper):
         raise Exception("Structure element expected, got " + str(type(element)))
 
 def getannotations(element,bookkeeper):
-    if element is not bookkeeper.stopat:
+    if element is bookkeeper.stopat:
+        bookkeeper.stop = True
+    if not bookkeeper.stop:
         if isinstance(element, folia.Correction):
             if not element.id:
                 #annotator requires IDS on corrections, make one on the fly
@@ -276,6 +284,7 @@ def getannotations(element,bookkeeper):
             correction_suggestions = []
             if element.hasnew():
                 for x in element.new():
+                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     for y in  getannotations(x,bookkeeper):
                         if not 'incorrection' in y: y['incorrection'] = []
                         y['incorrection'].append(element.id)
@@ -283,6 +292,7 @@ def getannotations(element,bookkeeper):
                         yield y #yield as any other
             if element.hascurrent():
                 for x in element.current():
+                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     for y in  getannotations(x,bookkeeper):
                         if not 'incorrection' in y: y['incorrection'] = []
                         y['incorrection'].append(element.id)
@@ -290,6 +300,7 @@ def getannotations(element,bookkeeper):
                         yield y #yield as any other
             if element.hasoriginal():
                 for x in element.original():
+                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     for y in  getannotations(x,bookkeeper):
                         y['auth'] = False
                         if not 'incorrection' in y: y['incorrection'] = []
@@ -297,6 +308,7 @@ def getannotations(element,bookkeeper):
                         correction_original.append(y)
             if element.hassuggestions():
                 for x in element.suggestions():
+                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     for y in  getannotations(x,bookkeeper):
                         y['auth'] = False
                         if not 'incorrection' in y: y['incorrection'] = []
@@ -353,10 +365,14 @@ def getannotations(element,bookkeeper):
             yield annotation
         if isinstance(element, folia.AbstractStructureElement) or isinstance(element, folia.AbstractAnnotationLayer) or isinstance(element, folia.AbstractSpanAnnotation) or isinstance(element, folia.Suggestion):
             for child in element:
-                if child is bookkeeper.stopat: break
-                for x in getannotations(child,bookkeeper):
-                    assert isinstance(x, dict)
-                    yield x
+                if child is bookkeeper.stopat:
+                    bookkeeper.stop = True
+                if bookkeeper.stop:
+                    break
+                else:
+                    for x in getannotations(child,bookkeeper):
+                        assert isinstance(x, dict)
+                        yield x
 
 def getdeclarations(doc):
     for annotationtype, set in doc.annotations:
