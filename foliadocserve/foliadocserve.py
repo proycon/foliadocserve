@@ -213,6 +213,7 @@ class DocStore:
             log("Loading " + filename)
             try:
                 self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
+                self.data[key].changed = False
             except Exception as e:
                 log("Error reading file " + filename + ": " + str(e))
                 self.done(key)
@@ -227,10 +228,9 @@ class DocStore:
         doc = self[key]
         if key[0] == "testflat":
             #No need to save the document, instead we run our tests:
-            doc.save("/tmp/testflat.xml")
             log("Running test " + key[1])
             return test(doc, key[1])
-        else:
+        elif doc.changed:
             self.use(key)
             log("Saving " + self.getfilename(key) + " - " + message)
             doc.save()
@@ -256,7 +256,7 @@ class DocStore:
                 r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git add/commit of " + self.getfilename(key))
-            self.done(key)
+                self.done(key)
 
 
     def unload(self, key, save=True):
@@ -453,7 +453,9 @@ class Root:
                     if self.debug:
                         log("[QUERY RESULT] " + result)
                     format = query.format
-                    self.addtochangelog(doc, query, docsel)
+                    if query.action and query.action.action != "SELECT":
+                        doc.changed = True
+                        self.addtochangelog(doc, query, docsel)
                 elif query == "GET":
                     results.append(doc.xmlstring())
                     format = "single-xml"
