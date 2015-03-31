@@ -32,6 +32,7 @@ import sys
 import traceback
 import threading
 import queue
+import gc
 from copy import copy
 from collections import defaultdict
 from pynlpl.formats import folia, fql, cql
@@ -269,6 +270,7 @@ class DocStore:
             if key in self.changelog:
                 del self.changelog[key]
             self.done(key)
+            gc.collect() #force garbage collection
 
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
@@ -728,6 +730,7 @@ def main():
     cherrypy.config.update({
         'server.socket_host': args.host,
         'server.socket_port': args.port,
+        'request.show_tracebacks':False,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
     docstore = DocStore(args.workdir, args.expirationtime, args.git)
