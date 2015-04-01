@@ -42,6 +42,10 @@ def getflatargs(params):
         args['slices'] = [ ( x.split(':')[0], int(x.split(':')[1])) for x in  params['slices'].split(',') ]  #comma separated list of xmltag:slicesize
     else:
         args['slices'] = ""
+    if 'textclasses' in params:
+        args['textclasses']= bool(int(params['declarations']))
+    else:
+        args['textclasses'] = False
     return args
 
 
@@ -63,6 +67,7 @@ def getslices(doc, Class, size=100):
             yield element.id
 
 
+
 def parseresults(results, doc, **kwargs):
     response = {}
     if 'declarations' in kwargs and kwargs['declarations']:
@@ -71,39 +76,64 @@ def parseresults(results, doc, **kwargs):
         response['setdefinitions'] =  getsetdefinitions(doc)
     if 'toc' in kwargs and kwargs['toc']:
         response['toc'] =  gettoc(doc)
+    if 'textclasses' in kwargs:
+        response['textclasses'] = list(doc.textclasses)
     if 'slices' in kwargs and kwargs['slices']:
         response['slices'] = {}
         for tag, size in kwargs['slices']:
             Class = folia.XML2CLASS[tag]
             response['slices'][tag] = list(getslices(doc, Class, size))
 
+    if 'customslicesize' in kwargs and kwargs['customslicesize']:
+        customslicesize = int(kwargs['customslicesize'])
+    else:
+        customslicesize = 50
+
+
     if results:
         response['elements'] = []
+        if customslicesize:
+            response['customslices'] = []
+            postponecustomslice = False
 
     bookkeeper = Bookkeeper() #will abort with partial result if too much data is returned
     for queryresults in results: #results are grouped per query, we don't care about the origin now
-        for element in queryresults:
-            if isinstance(element,fql.SpanSet):
-                for e in element:
+        for i, element in enumerate(queryresults):
+
+            if customslicesize and i % customslicesize == 0 or postponecustomslice: #custom slices of this result set, for pagination of search results
+                if isinstance(element,fql.SpanSet):
+                    id = element[0].id
+                else:
+                    id = element.id
+                if not id:
+                    postponecustomslice = True
+                else:
+                    response['customslices'].append(element.id)
+                    postponecustomslice = False
+
+            if not bookkeeper.stop:
+                if isinstance(element,fql.SpanSet):
+                    for e in element:
+                        response['elements'].append({
+                            'elementid': e.id if e.id else None,
+                            'html': gethtml(e,bookkeeper) if isinstance(e, folia.AbstractStructureElement) else None,
+                            'annotations': list(getannotations(e,bookkeeper.reset())),
+                        })
+                else:
                     response['elements'].append({
-                        'elementid': e.id if e.id else None,
-                        'html': gethtml(e,bookkeeper) if isinstance(e, folia.AbstractStructureElement) else None,
-                        'annotations': list(getannotations(e,bookkeeper.reset())),
+                        'elementid': element.id if element.id else None,
+                        'html': gethtml(element,bookkeeper) if isinstance(element, folia.AbstractStructureElement) else None,
+                        'annotations': list(getannotations(element,bookkeeper.reset())),
                     })
-            else:
-                response['elements'].append({
-                    'elementid': element.id if element.id else None,
-                    'html': gethtml(element,bookkeeper) if isinstance(element, folia.AbstractStructureElement) else None,
-                    'annotations': list(getannotations(element,bookkeeper.reset())),
-                })
             if bookkeeper.stop:
                 break
     response['aborted'] = bookkeeper.stop
     if 'lastaccess' in kwargs:
         response['sessions'] =  len([s for s in kwargs['lastaccess'] if s != 'NOSID' ])
+
     return json.dumps(response).encode('utf-8')
 
-def gethtmltext(element):
+def gethtmltext(element, textclass="current"):
     """Get the text of an element, but maintain markup elements and convert them to HTML"""
 
     s = ""
@@ -178,7 +208,7 @@ def gethtmltext(element):
         else:
             return s
     else:
-        return gethtmltext(element.textcontent()) #only explicit text!
+        return gethtmltext(element.textcontent(textclass)) #only explicit text!
 
 class Bookkeeper:
     def __init__(self):
@@ -254,7 +284,11 @@ def gethtml(element, bookkeeper):
             s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + "\">" + annotationbox + label + s
         else:
             #no children
-            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + annotationbox + label
+            s = "<" + htmltag + " id=\"" + element.id + "\" class=\"F " + element.XMLTAG + " deepest\">" + annotationbox
+            if label:
+                s += label
+            else:
+                s += "<span class=\"lbl\"></span>" #label placeholder
 
         #Specific content
         if isinstance(element, folia.Linebreak):
@@ -325,7 +359,14 @@ def getannotations(element,bookkeeper):
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
             yield annotation
-        elif isinstance(element, folia.AbstractTokenAnnotation) or isinstance(element,folia.TextContent):
+        elif isinstance(element,folia.TextContent):
+            annotation = element.json()
+            p = element.parent
+            p = element.ancestor(folia.AbstractStructureElement)
+            annotation['targets'] = [ p.id ]
+            assert isinstance(annotation, dict)
+            yield annotation
+        elif isinstance(element, folia.AbstractTokenAnnotation):
             annotation = element.json()
             p = element.parent
             #log("Parent of " + str(repr(element))+ " is "+ str(repr(p)))

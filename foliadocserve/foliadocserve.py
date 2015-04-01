@@ -270,7 +270,6 @@ class DocStore:
             if key in self.changelog:
                 del self.changelog[key]
             self.done(key)
-            gc.collect() #force garbage collection
 
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
