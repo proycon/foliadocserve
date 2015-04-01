@@ -415,8 +415,15 @@ class Root:
                     query = "PROBE" #gets no content data at all, but allows returning associated metadata used by FLAT, forces FLAT format
                 else:
                     if rawquery[:4] == "CQL ":
+                        if rawquery.find('FORMAT') != -1:
+                            end = rawquery.find('FORMAT')
+                            format = rawquery[end+7:]
+                        else:
+                            end = 9999
+                            format = 'xml'
                         try:
-                            query = fql.Query(cql.cql2fql(rawquery[4:]))
+                            query = fql.Query(cql.cql2fql(rawquery[4:end]))
+                            query.format = format
                         except cql.SyntaxError as e :
                             raise fql.SyntaxError("Error in CQL query: " + str(e))
                     else:

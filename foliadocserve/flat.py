@@ -23,6 +23,9 @@ import random
 
 ELEMENTLIMIT = 5000 #structure elements only
 
+
+ELEMENTMEMORYLIMIT = 10000000 #very hard abort (exception) after this many elements, to protect memory overflow
+
 def getflatargs(params):
     """Get arguments specific to FLAT, will be passed to parseresults"""
     args = {}
@@ -108,7 +111,7 @@ def parseresults(results, doc, **kwargs):
                 if not id:
                     postponecustomslice = True
                 else:
-                    response['customslices'].append(element.id)
+                    response['customslices'].append(id)
                     postponecustomslice = False
 
             if not bookkeeper.stop:
@@ -127,6 +130,9 @@ def parseresults(results, doc, **kwargs):
                     })
             if bookkeeper.stop:
                 break
+        if bookkeeper.elementcount > ELEMENTMEMORYLIMIT:
+            raise Exception("Memory limit reached, aborting")
+
     response['aborted'] = bookkeeper.stop
     if 'lastaccess' in kwargs:
         response['sessions'] =  len([s for s in kwargs['lastaccess'] if s != 'NOSID' ])
