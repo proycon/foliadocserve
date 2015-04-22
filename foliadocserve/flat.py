@@ -365,14 +365,7 @@ def getannotations(element,bookkeeper):
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
             yield annotation
-        elif isinstance(element,folia.TextContent):
-            annotation = element.json()
-            p = element.parent
-            p = element.ancestor(folia.AbstractStructureElement)
-            annotation['targets'] = [ p.id ]
-            assert isinstance(annotation, dict)
-            yield annotation
-        elif isinstance(element, folia.AbstractTokenAnnotation):
+        elif isinstance(element,folia.TextContent) or isinstance(element, folia.AbstractTokenAnnotation) or isinstance(element, folia.String):
             annotation = element.json()
             p = element.parent
             #log("Parent of " + str(repr(element))+ " is "+ str(repr(p)))

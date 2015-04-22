@@ -19,7 +19,7 @@ def read(fname):
 
 setup(
     name = "foliadocserve",
-    version = "0.3.0",
+    version = "0.3.1",
     author = "Maarten van Gompel",
     author_email = "proycon@anaproy.nl",
     description = ("The FoLiA Document Server is a backend HTTP service to interact with documents in the FoLiA format, a rich XML-based format for linguistic annotation (http://proycon.github.io/folia). It provides an interface to efficiently edit FoLiA documents through the FoLiA Query Language (FQL). "),
@@ -45,5 +45,5 @@ setup(
         ]
     },
     package_data = {'foliadocserve':['templates/index.html','testflat.folia.xml'] },
-    install_requires=['lxml >= 2.2','pynlpl >= 0.7.5','cherrypy','Jinja2']
+    install_requires=['lxml >= 2.2','pynlpl >= 0.7.5.5','FoLiA-tools >= 0.12.0.32','cherrypy','Jinja2']
 )
