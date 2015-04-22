@@ -17,6 +17,7 @@
 #----------------------------------------------------------------
 
 from pynlpl.formats import folia,fql
+from foliatools.foliatextcontent import linkstrings
 import json
 import random
 
@@ -142,6 +143,8 @@ def parseresults(results, doc, **kwargs):
 def gethtmltext(element, textclass="current"):
     """Get the text of an element, but maintain markup elements and convert them to HTML"""
 
+    checkstrings = folia.AnnotationType.STRING in element.doc.annotationdefaults
+
     s = ""
     if isinstance(element, folia.AbstractTextMarkup): #markup
         tag = "span"
@@ -185,6 +188,11 @@ def gethtmltext(element, textclass="current"):
             s += "<" + tag
             if cls:
                 s += " class=\"" + cls + "\""
+            try:
+                if element.idref:
+                    s += " id=\"strref_" + element.idref + "\""
+            except AttributeError:
+                pass
             if attribs:
                 s += attribs
             s += ">"
@@ -202,6 +210,9 @@ def gethtmltext(element, textclass="current"):
     elif isinstance(element, folia.Linebreak):
         return "<br/>"
     elif isinstance(element, folia.TextContent):
+        if checkstrings and element.ancestor(folia.AbstractStructureElement).hasannotation(folia.String) and not any( isinstance(x,folia.TextMarkupString) for x in element):
+            linkstrings(element.ancestor(folia.AbstractStructureElement), element.cls)
+
         for e in element:
             if isinstance(e,str):
                 s += e
@@ -234,6 +245,7 @@ def gethtml(element, bookkeeper):
         bookkeeper.stopat = element
         bookkeeper.stop = True
         return ""
+
 
     if isinstance(element, folia.Correction):
         s = ""
@@ -310,6 +322,7 @@ def gethtml(element, bookkeeper):
         raise Exception("Structure element expected, got " + str(type(element)))
 
 def getannotations(element,bookkeeper):
+    checkstrings = folia.AnnotationType.STRING in element.doc.annotationdefaults
     if element is bookkeeper.stopat:
         bookkeeper.stop = True
     if not bookkeeper.stop:
@@ -371,6 +384,9 @@ def getannotations(element,bookkeeper):
             #log("Parent of " + str(repr(element))+ " is "+ str(repr(p)))
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
+            if isinstance(element,folia.TextContent):
+                if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
+                    annotation['htmltext'] = gethtmltext(element,element.cls)
             assert isinstance(annotation, dict)
             yield annotation
         elif isinstance(element, folia.AbstractSpanAnnotation):
