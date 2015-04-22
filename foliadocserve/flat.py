@@ -170,6 +170,12 @@ def gethtmltext(element, textclass="current"):
                 cls = "gap"
         elif isinstance(element, folia.TextMarkupString):
                 cls = "str"
+                try:
+                    if element.idref:
+                        if element.doc[element.idref].count(folia.Correction) or element.doc[element.idref].count(folia.ErrorDetection):
+                            cls = "str correction"
+                except:
+                    pass
         elif isinstance(element, folia.TextMarkupCorrection):
                 cls = "correction"
 
@@ -360,13 +366,9 @@ def getannotations(element,bookkeeper):
                         y['incorrection'].append(element.id)
                         correction_original.append(y)
             if element.hassuggestions():
-                for x in element.suggestions():
-                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
-                    for y in  getannotations(x,bookkeeper):
-                        y['auth'] = False
-                        if not 'incorrection' in y: y['incorrection'] = []
-                        y['incorrection'].append(element.id)
-                        correction_suggestions.append(y)
+                for suggestion in element.suggestions():
+                    if suggestion is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
+                    correction_suggestions.append(suggestion.json())
 
             annotation = {'id': element.id ,'set': element.set, 'class': element.cls, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
             if element.annotator:
