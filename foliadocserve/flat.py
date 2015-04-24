@@ -389,6 +389,20 @@ def getannotations(element,bookkeeper):
             if isinstance(element,folia.TextContent):
                 if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
                     annotation['htmltext'] = gethtmltext(element,element.cls)
+            #See if there is a correction element with only suggestions pertaining to this annotation, link to it using 'hassuggestions':
+            for c in p.select(folia.Correction):
+                if c.hassuggestions():
+                    #Do the suggestions describe this annotation type?
+                    hassuggestions = False
+                    for suggestion in c.suggestions():
+                        for sa in suggestion:
+                            if sa.__class__ is element.__class__ and sa.set == element.set:
+                                hassuggestions = True
+                                break #one is enough
+                        if hassuggestions: break #one is enough
+                    if hassuggestions:
+                        if not 'hassuggestions' in annotation: annotation['hassuggestions'] = []
+                        annotation['hassuggestions'].append(c.id)
             assert isinstance(annotation, dict)
             yield annotation
         elif isinstance(element, folia.AbstractSpanAnnotation):
