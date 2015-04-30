@@ -256,13 +256,19 @@ def gethtml(element, bookkeeper):
     if isinstance(element, folia.Correction):
         s = ""
         if element.hasnew():
-            for child in element.new():
-                if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                    s += gethtml(child, bookkeeper)
+            try:
+                for child in element.new():
+                    if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
+                        s += gethtml(child, bookkeeper)
+            except folia.NoSuchAnnotation:
+                pass
         elif element.hascurrent():
-            for child in element.current():
-                if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                    s += gethtml(child, bookkeeper)
+            try:
+                for child in element.current():
+                    if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
+                        s += gethtml(child, bookkeeper)
+            except folia.NoSuchAnnotation:
+                pass
         return s
     elif isinstance(element, folia.AbstractStructureElement):
         s = ""
@@ -341,6 +347,7 @@ def getannotations(element,bookkeeper):
             correction_current = []
             correction_original = []
             correction_suggestions = []
+            correction_special_type = None
             if element.hasnew():
                 for x in element.new():
                     if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
@@ -349,14 +356,20 @@ def getannotations(element,bookkeeper):
                         y['incorrection'].append(element.id)
                         correction_new.append(y)
                         yield y #yield as any other
+            elif element.hasnew(True):
+                #empty new, this is deletion
+                correction_special_type = 'deletion'
             if element.hascurrent():
-                for x in element.current():
-                    if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
-                    for y in  getannotations(x,bookkeeper):
-                        if not 'incorrection' in y: y['incorrection'] = []
-                        y['incorrection'].append(element.id)
-                        correction_current.append(y)
-                        yield y #yield as any other
+                try:
+                    for x in element.current():
+                        if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
+                        for y in  getannotations(x,bookkeeper):
+                            if not 'incorrection' in y: y['incorrection'] = []
+                            y['incorrection'].append(element.id)
+                            correction_current.append(y)
+                            yield y #yield as any other
+                except folia.NoSuchAnnotation:
+                    pass
             if element.hasoriginal():
                 for x in element.original():
                     if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
@@ -365,10 +378,16 @@ def getannotations(element,bookkeeper):
                         if not 'incorrection' in y: y['incorrection'] = []
                         y['incorrection'].append(element.id)
                         correction_original.append(y)
+            elif element.hasoriginal(True):
+                #empty original, this is an insertion
+                correction_special_type = 'insertion'
             if element.hassuggestions():
                 for suggestion in element.suggestions():
                     if suggestion is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     correction_suggestions.append(suggestion.json())
+            elif element.hassuggestions(True):
+                #suggestion for deletion
+                correction_special_type = 'deletion'
 
             annotation = {'id': element.id ,'set': element.set, 'class': element.cls, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
             if element.annotator:
@@ -377,6 +396,8 @@ def getannotations(element,bookkeeper):
                 annotation['annotatortype'] = "auto"
             elif element.annotatortype == folia.AnnotatorType.MANUAL:
                 annotation['annotatortype'] = "manual"
+            if correction_special_type:
+                annotation['specialtype'] = correction_special_type
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
             yield annotation
