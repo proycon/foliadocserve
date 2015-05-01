@@ -382,7 +382,9 @@ def getannotations(element,bookkeeper):
                 #empty original, this is an insertion
                 if element.hasnew():
                     correction_special_type = 'insertion'
-                elif element.hassuggestions():
+            elif not element.hascurrent() and element.hascurrent(True):
+                #empty current, this is a suggested insertion
+                if element.hassuggestions():
                     correction_special_type = 'suggest insertion'
             if element.hassuggestions():
                 for suggestion in element.suggestions():
