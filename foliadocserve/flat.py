@@ -398,6 +398,18 @@ def getannotations(element,bookkeeper):
                 annotation['annotatortype'] = "manual"
             if correction_special_type:
                 annotation['specialtype'] = correction_special_type
+            previous = element.previous(None,None)
+            if isinstance(previous, folia.Correction): previous = next(previous.select(folia.AbstractStructureElement))
+            if previous:
+                annotation['previous'] =  previous.id
+            else:
+                annotation['previous'] = None
+            successor = element.next(None,None )
+            if isinstance(successor, folia.Correction): successor = next(successor.select(folia.AbstractStructureElement))
+            if successor:
+                annotation['next'] =  successor.id
+            else:
+                annotation['next'] = None
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
             yield annotation
