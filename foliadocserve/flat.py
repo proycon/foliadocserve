@@ -380,14 +380,17 @@ def getannotations(element,bookkeeper):
                         correction_original.append(y)
             elif element.hasoriginal(True):
                 #empty original, this is an insertion
-                correction_special_type = 'insertion'
+                if element.hasnew():
+                    correction_special_type = 'insertion'
+                elif element.hassuggestions():
+                    correction_special_type = 'suggest insertion'
             if element.hassuggestions():
                 for suggestion in element.suggestions():
                     if suggestion is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
                     correction_suggestions.append(suggestion.json())
             elif element.hassuggestions(True):
                 #suggestion for deletion
-                correction_special_type = 'deletion'
+                correction_special_type = 'suggest deletion'
 
             annotation = {'id': element.id ,'set': element.set, 'class': element.cls, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
             if element.annotator:
