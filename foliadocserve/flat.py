@@ -348,6 +348,8 @@ def getannotations(element,bookkeeper):
             correction_original = []
             correction_suggestions = []
             correction_special_type = None
+            correction_merge = None
+            correction_split = None
             if element.hasnew():
                 for x in element.new():
                     if x is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
@@ -389,6 +391,10 @@ def getannotations(element,bookkeeper):
             if element.hassuggestions():
                 for suggestion in element.suggestions():
                     if suggestion is bookkeeper.stopat: bookkeeper.stop = True #do continue with correction though
+                    if suggestion.merge:
+                        correction_merge = suggestion.merge.split(' ')
+                    if suggestion.split:
+                        correction_split = suggestion.split.split(' ')
                     correction_suggestions.append(suggestion.json())
             elif element.hassuggestions(True):
                 #suggestion for deletion
@@ -403,6 +409,11 @@ def getannotations(element,bookkeeper):
                 annotation['annotatortype'] = "manual"
             if correction_special_type:
                 annotation['specialtype'] = correction_special_type
+                if correction_split:
+                    annotation['suggestsplit'] = correction_split
+                if correction_merge:
+                    annotation['suggestmerge'] = correction_merge
+
             annotation['previous'] = None
             try:
                 previous = element.previous(None,None)
