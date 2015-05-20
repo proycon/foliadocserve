@@ -473,6 +473,9 @@ class Root:
                 log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                formatted_lines = traceback.format_exc().splitlines()
+                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
                 log("[QUERY FAILED] FoLiA Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FoLiA error: " + str(e))
             prevdocid = doc.id
