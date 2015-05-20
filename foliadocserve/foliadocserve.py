@@ -25,15 +25,11 @@ import argparse
 import time
 import os
 import json
-import random
-import datetime
 import subprocess
 import sys
 import traceback
 import threading
 import queue
-import gc
-from copy import copy
 from collections import defaultdict
 from pynlpl.formats import folia, fql, cql
 from foliadocserve.flat import parseresults, getflatargs
@@ -49,7 +45,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 logfile = None
 def log(msg):
@@ -549,7 +545,7 @@ class Root:
             if os.path.exists(self.workdir + '/.git'):
                 dir = self.workdir
             else:
-               dir = self.docstore.getpath((namespace,doc))
+                dir = self.docstore.getpath((namespace,docid))
             os.chdir(dir)
             proc = subprocess.Popen("git log " + docid + ".folia.xml", stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,cwd=dir)
             outs, errs = proc.communicate()
@@ -585,6 +581,7 @@ class Root:
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if self.docstore.git:
+            namespace, docid = self.docselector(*args)
             if (namespace,docid) in self.docstore:
                 os.chdir(self.workdir)
                 #unload document (will even still save it if not done yet, cause we need a clean workdir)
@@ -642,7 +639,7 @@ class Root:
         if 'X-sessionid' in cherrypy.request.headers:
             sid = cherrypy.request.headers['X-sessionid']
         else:
-            raise cherrypy.HTTPError(404, "Expected X-sessionid" + docselector[0] + "/" + docselector[1])
+            raise cherrypy.HTTPError(404, "Expected X-sessionid " + namespace + "/" + docid)
 
         if namespace == "testflat":
             return "{}" #no polling for testflat
@@ -672,7 +669,7 @@ class Root:
         except FileNotFoundError:
             raise cherrypy.HTTPError(404, "Namespace not found: " + str(namespace))
         return json.dumps({
-                'namespaces': namespaces
+            'namespaces': namespaces
         })
 
     @cherrypy.expose
@@ -683,9 +680,9 @@ class Root:
         except FileNotFoundError:
             raise cherrypy.HTTPError(404, "Namespace not found: " + str(namespace))
         return json.dumps({
-                'documents': docs,
-                'timestamp': { x:os.path.getmtime(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  },
-                'filesize': { x:os.path.getsize(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  }
+            'documents': docs,
+            'timestamp': { x:os.path.getmtime(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  },
+            'filesize': { x:os.path.getsize(self.docstore.workdir + "/" + namespace + "/"+ x) for x in docs  }
         })
 
 

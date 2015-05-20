@@ -9,9 +9,9 @@ from setuptools import setup
 
 
 try:
-   os.chdir(os.path.dirname(sys.argv[0]))
+    os.chdir(os.path.dirname(sys.argv[0]))
 except:
-   pass
+    pass
 
 
 def read(fname):
@@ -45,5 +45,5 @@ setup(
         ]
     },
     package_data = {'foliadocserve':['templates/index.html','testflat.folia.xml'] },
-    install_requires=['lxml >= 2.2','pynlpl >= 0.7.6.5','FoLiA-tools >= 0.12.0.32','cherrypy','Jinja2']
+    install_requires=['lxml >= 2.2','pynlpl >= 0.7.6.5','FoLiA-tools >= 0.12.1.33','cherrypy','Jinja2']
 )

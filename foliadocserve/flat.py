@@ -165,19 +165,19 @@ def gethtmltext(element, textclass="current"):
             else:
                 cls = "style"
         elif isinstance(element, folia.TextMarkupError):
-                cls = "error"
+            cls = "error"
         elif isinstance(element, folia.TextMarkupGap):
-                cls = "gap"
+            cls = "gap"
         elif isinstance(element, folia.TextMarkupString):
-                cls = "str"
-                try:
-                    if element.idref:
-                        if element.doc[element.idref].count(folia.Correction) or element.doc[element.idref].count(folia.ErrorDetection):
-                            cls = "str correction"
-                except:
-                    pass
+            cls = "str"
+            try:
+                if element.idref:
+                    if element.doc[element.idref].count(folia.Correction) or element.doc[element.idref].count(folia.ErrorDetection):
+                        cls = "str correction"
+            except:
+                pass
         elif isinstance(element, folia.TextMarkupCorrection):
-                cls = "correction"
+            cls = "correction"
 
         #hyperlinks
         if element.href:
