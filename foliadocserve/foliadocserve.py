@@ -301,6 +301,7 @@ class DocStore:
         return iter(self.data)
 
     def autounload(self, save=True):
+        log("Checking whether there are documents to unload...")
         unload = []
         for d in self.lastaccess:
             for sid, t in self.lastaccess[d].items():
@@ -566,13 +567,14 @@ class Root:
 
     @cherrypy.expose
     def save(self, *args, message=""):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
         namespace, docid = self.docselector(*args)
         if (namespace,docid) in self.docstore:
             #self.bgtask.put( self.docstore.save, (namespace,docid), message)
             self.docstore.save( (namespace,docid), message)
-            return "saved"
+            return b"{'saved':1}"
         else:
-            return "nothing to save"
+            return b"{'saved':0}"
 
 
     @cherrypy.expose
