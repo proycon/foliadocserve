@@ -51,7 +51,7 @@ logfile = None
 def log(msg):
     global logfile
     if logfile:
-        logfile.write(msg+"\n")
+        logfile.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - " +  msg+"\n")
         logfile.flush()
 
 
@@ -301,15 +301,17 @@ class DocStore:
         return iter(self.data)
 
     def autounload(self, save=True):
-        log("Checking whether there are documents to unload...")
+        log("Documents loaded: " + str(len(self)))
         unload = []
         for d in self.lastaccess:
             for sid, t in self.lastaccess[d].items():
                 if time.time() - t > self.expiretime:
                     unload.append(d)
 
-        for key in unload:
-            self.unload(key, save)
+        if unload:
+            log("Unloading: " + str(len(unload)))
+            for key in unload:
+                self.unload(key, save)
 
 
 def validatenamespace(namespace):
