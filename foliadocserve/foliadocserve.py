@@ -45,7 +45,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 logfile = None
 def log(msg):
@@ -568,8 +568,9 @@ class Root:
     def save(self, *args, message=""):
         namespace, docid = self.docselector(*args)
         if (namespace,docid) in self.docstore:
-            self.bgtask.put( self.docstore.save, (namespace,docid), message)
-            return "scheduling save"
+            #self.bgtask.put( self.docstore.save, (namespace,docid), message)
+            self.docstore.save( (namespace,docid), message)
+            return "saved"
         else:
             return "nothing to save"
 
