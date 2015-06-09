@@ -315,6 +315,11 @@ class DocStore:
             for key in unload:
                 self.unload(key, save)
 
+    def forceunload(self):
+        """Called when the document server stops/reloads (SIGUSR1 will trigger this)"""
+        log("Signal received, unloading all documents...")
+        for key in list(self.data.keys()):
+            self.unload(key)
 
 def validatenamespace(namespace):
     return namespace.replace('..','').replace('"','').replace(' ','_').replace(';','').replace('&','').strip('/')
@@ -753,6 +758,8 @@ def main():
     bgtask.subscribe()
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
+    cherrypy.engine.subscribe('stop',  docstore.forceunload)
+    cherrypy.engine.subscribe('graceful',  docstore.forceunload)
     cherrypy.quickstart(Root(docstore,bgtask,args))
 
 if __name__ == '__main__':
