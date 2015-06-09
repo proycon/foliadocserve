@@ -305,9 +305,10 @@ class DocStore:
         log("Documents loaded: " + str(len(self)))
         unload = []
         for d in self.lastaccess:
-            for sid, t in self.lastaccess[d].items():
-                if time.time() - t > self.expiretime:
-                    unload.append(d)
+            if d not in unload:
+                for _, t in self.lastaccess[d].items():
+                    if time.time() - t > self.expiretime:
+                        unload.append(d)
 
         if unload:
             log("Unloading: " + str(len(unload)))
