@@ -364,7 +364,7 @@ class Root:
         if self.docstore.git:
             if query.action and query.action.action != "SELECT":
                 if query.action.focus and query.action.focus.Class:
-                    changemsg = query.action.action.lower() + " on " + query.actions.focus.Class.XMLTAG
+                    changemsg = query.action.action.lower() + " on " + query.action.focus.Class.XMLTAG
                     if query.action.assignments and query.action.assignments['annotator']:
                         changemsg += " by " + query.action.assignments['annotator']
                     self.docstore.changelog[docselector].append(changemsg)
