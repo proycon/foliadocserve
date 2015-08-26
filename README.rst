@@ -693,15 +693,39 @@ into proper corrections::
 And a split::
 
  SUBSTITUTE w WITH text "each" SUBSTITUTE w WITH text "other" 
- (AS CORRECTION OF "some/correctionset WITH class "runonerror")
+ (AS CORRECTION OF "some/correctionset" WITH class "runonerror")
  FOR w WHERE text="eachother"
 
 To make this into a suggestion for correction instead, use the **SUGGESTION**
-folloed by  **SUBSTITUTE**,  inside the **AS** clause, where the chain of substitute statements has to be enclosed in parentheses::
+keyword followed by  **SUBSTITUTE**,  inside the **AS** clause, where the chain
+of substitute statements has to be enclosed in parentheses::
 
- SUBSTITUTE (AS CORRECTION OF "some/correctionset WITH class "runonerror" SUGGESTION (SUBTITUTE w WITH text "each" SUBSTITUTE w WITH text "other") )
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset" WITH class "runonerror" SUGGESTION (SUBTITUTE w WITH text "each" SUBSTITUTE w WITH text "other") )
  FOR w WHERE text="eachother"
 
+(Alternatively, you can use **ADD** instead of **SUBSTITUTE** after the **SUGGESTION** clause, which behaves identically)
+
+In FoLiA, suggestions for deletion are simply empty suggestions, and they are made using the **DELETION** keyword:
+
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset" WITH class "redundantword" SUGGESTION DELETION )
+ FOR w WHERE text="something"
+
+Suggestions may indicate they modify the parent structure when applied. For
+instance, a suggestion for removal of a redundant period is often also a
+suggestion that the sentence should be merged. This is explicitly indicated in
+FoLiA with a ``merge`` attribute on the suggestion, and in FQL with the
+**MERGE** keyword immediately following **SUGGESTION**. An example:
+
+ SUBSTITUTE (AS CORRECTION OF "some/correctionset" WITH class "redundantpunctuation" SUGGESTION MERGE DELETION )
+ FOR w WHERE text="."
+
+The reverse situation would be insertion of a missing period, which is
+generally also a suggestion to split the parent sentence. For this we use the
+**SPLIT** keyword. Insertions are typically done using the **APPEND** or
+**PREPEND** actions, as there is nothing to substitute:
+
+ APPEND (AS CORRECTION OF "some/correctionset" WITH class "missingpunctuation" SUGGESTION SPLIT (ADD w WITH text ".") )
+ FOR w WHERE text="end"
 
 -------------------------------
 I can haz context plz?
