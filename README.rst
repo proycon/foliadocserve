@@ -1,3 +1,6 @@
+.. image:: http://applejack.science.ru.nl/lamabadge.php/foliadocserve
+   :target: http://applejack.science.ru.nl/languagemachines/
+
 *****************************************
 FoLiA Document Server
 *****************************************
