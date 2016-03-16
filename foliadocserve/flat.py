@@ -457,7 +457,7 @@ def getannotations(element,bookkeeper):
             assert isinstance(annotation, dict)
             yield annotation
         elif isinstance(element, folia.AbstractSpanAnnotation):
-            if not element.id and (folia.Attrib.ID in element.REQUIRED_ATTRIBS or folia.Attrib.ID in element.OPTIONAL_ATTRIBS):
+            if not element.id and ((element.REQUIRED_ATTRIBS and folia.Attrib.ID in element.REQUIRED_ATTRIBS) or (element.OPTIONAL_ATTRIBS and folia.Attrib.ID in element.OPTIONAL_ATTRIBS)):
                 #span annotation elements must have an ID for the editor to work with them, let's autogenerate one:
                 element.id = element.doc.data[0].generate_id(element)
                 #and add to index
