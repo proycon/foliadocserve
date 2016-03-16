@@ -18,9 +18,9 @@
 #
 #----------------------------------------------------------------
 
+#pylint: disable=too-many-nested-blocks, attribute-defined-outside-init
 
 from __future__ import print_function, unicode_literals, division, absolute_import
-import cherrypy
 import argparse
 import time
 import os
@@ -32,11 +32,12 @@ import threading
 import datetime
 import queue
 from collections import defaultdict
+import cherrypy
+from jinja2 import Environment, FileSystemLoader
 from pynlpl.formats import folia, fql, cql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
 
-from jinja2 import Environment, FileSystemLoader
 syspath = os.path.dirname(os.path.realpath(__file__))
 env = Environment(loader=FileSystemLoader(syspath + '/templates'))
 
@@ -50,7 +51,6 @@ VERSION = "0.3.2"
 
 logfile = None
 def log(msg):
-    global logfile
     if logfile:
         logfile.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - " +  msg+"\n")
         logfile.flush()
@@ -202,7 +202,7 @@ class DocStore:
         if key[0] == "testflat": key = ("testflat", "testflat")
         self.use(key)
         filename = self.getfilename(key)
-        if not key in self or forcereload:
+        if key not in self or forcereload:
             if not os.path.exists(filename):
                 log("File not found: " + filename)
                 self.done(key)
@@ -234,16 +234,16 @@ class DocStore:
             if self.git:
                 if os.path.exists(self.workdir + '/.git'):
                     # entire workdir is one git repo (old style)
-                    dir = self.workdir
+                    targetdir = self.workdir
                     os.chdir(self.workdir)
                 else:
-                    dir = self.getpath(key)
-                    os.chdir(dir)
-                    if not os.path.exists(dir + '/.git'):
-                        log("Initialising git repository in  " + dir)
+                    targetdir = self.getpath(key)
+                    os.chdir(targetdir)
+                    if not os.path.exists(targetdir + '/.git'):
+                        log("Initialising git repository in  " + targetdir)
                         r = os.system("git init")
                         if r != 0:
-                            log("ERROR during git init of " + dir)
+                            log("ERROR during git init of " + targetdir)
                             self.done(key)
                             return
                 message = "\n".join(self.changelog[key]) + "\n" + message
@@ -358,7 +358,8 @@ class Root:
         if sid[-5:] != 'NOSID':
             log("Creating session " + sid + " for " + "/".join((namespace,docid)))
             self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
-            self.docstore.updateq[(namespace,docid)][sid] #will create it if it does not exist yet, does nothing otherwise, other sessions will write here what we need to update
+            # v-- will create it if it does not exist yet, does nothing otherwise, other sessions will write here what we need to update
+            self.docstore.updateq[(namespace,docid)][sid] #pylint: disable=pointless-statement
             for othersid in self.docstore.updateq[(namespace,docid)]:
                 if othersid != sid:
                     for result in results:
@@ -484,7 +485,6 @@ class Root:
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                formatted_lines = traceback.format_exc().splitlines()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
                 log("[QUERY FAILED] FoLiA Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FoLiA error: " + str(e))
@@ -639,7 +639,7 @@ class Root:
             docid = args[-1]
             namespace = validatenamespace('/'.join(args[:-1]))
             if not namespace or not docid:
-                raise
+                raise NoSuchDocument()
         except:
             raise cherrypy.HTTPError(404, "Expected namespace/docid")
         docid = docid.replace('/','').replace('..','').replace(';','').replace('&','').replace(' ','_')
@@ -734,7 +734,7 @@ class Root:
 
 
 def main():
-    global logfile
+    global logfile #pylint: disable=global-statement
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d','--workdir', type=str,help="Work directory", action='store',required=True)
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
