@@ -16,10 +16,10 @@
 #
 #----------------------------------------------------------------
 
-from pynlpl.formats import folia,fql
-from foliatools.foliatextcontent import linkstrings
 import json
 import random
+from pynlpl.formats import folia,fql
+from foliatools.foliatextcontent import linkstrings
 
 
 ELEMENTLIMIT = 5000 #structure elements only
@@ -498,15 +498,13 @@ def getannotations(element,bookkeeper):
                         yield x
 
 def getdeclarations(doc):
+    #resolve annotation type and return the XML tag that is primary for it
     for annotationtype, set in doc.annotations:
-        try:
-            C = folia.ANNOTATIONTYPE2CLASS[annotationtype]
-        except KeyError:
-            pass
-        #if (issubclass(C, folia.AbstractAnnotation) or C is folia.TextContent or C is folia.Correction) and not (issubclass(C, folia.AbstractTextMarkup)): #rules out structure elements for now
-        if not issubclass(C, folia.AbstractTextMarkup) and annotationtype in folia.ANNOTATIONTYPE2XML:
-            annotationtype = folia.ANNOTATIONTYPE2XML[annotationtype]
-            yield {'annotationtype': annotationtype, 'set': set}
+        if annotationtype in folia.ANNOTATIONTYPE2XML:
+            xmltag = folia.ANNOTATIONTYPE2XML[annotationtype]
+            C = folia.XML2CLASS[xmltag]
+            if not issubclass(C, folia.AbstractTextMarkup):
+                yield {'annotationtype': xmltag, 'set': set} #annotationtype as xmltag
 
 def getsetdefinitions(doc):
     setdefs = {}
