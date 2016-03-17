@@ -227,7 +227,7 @@ class DocStore:
             #No need to save the document, instead we run our tests:
             log("Running test " + key[1])
             return test(doc, key[1])
-        elif doc.changed:
+        elif hasattr(doc,'changed') and doc.changed:
             self.use(key)
             log("Saving " + self.getfilename(key) + " - " + message)
             doc.save()
