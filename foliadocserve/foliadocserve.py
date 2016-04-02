@@ -713,6 +713,7 @@ class Root:
         try:
             log("Loading document from upload")
             doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True)
+            doc.changed = True
             response['docid'] = doc.id
             self.docstore[(namespace,doc.id)] = doc
         except Exception as e:
