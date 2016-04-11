@@ -407,6 +407,10 @@ class Root:
             cl = cherrypy.request.headers['Content-Length']
             rawqueries = cherrypy.request.body.read(int(cl)).split("\n")
 
+        if self.debug:
+            for i,rawquery in enumerate(rawqueries):
+                log("[QUERY INCOMING #" + str(i+1) + "] " + rawquery)
+
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
 
@@ -467,7 +471,7 @@ class Root:
                     result =  query(doc,False,self.debug >= 2)
                     results.append(result) #False = nowrap
                     if self.debug:
-                        log("[QUERY RESULT] " + result)
+                        log("[QUERY RESULT] " + repr(result))
                     format = query.format
                     if query.action and query.action.action != "SELECT":
                         doc.changed = True
@@ -489,9 +493,9 @@ class Root:
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
-                log("[QUERY FAILED] FoLiA Error: " + str(e))
+                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": " + str(e))
                 if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
-                raise cherrypy.HTTPError(404, "FoLiA error: " + str(e))
+                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": " + str(e) + "\n\nQuery was: " + rawquery)
             prevdocid = doc.id
 
         if not format:
