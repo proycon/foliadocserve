@@ -417,7 +417,6 @@ class Root:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
                 if not docsel: docsel = prevdocsel
-                log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
                 self.docstore.use(docsel)
                 if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
@@ -444,6 +443,7 @@ class Root:
                     if query.action and not docsel:
                         raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
+                log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
                 log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
             finally:
@@ -536,7 +536,10 @@ class Root:
             del self.docstore.data[('testflat','testflat')]
 
         if self.debug:
-            log("[FINAL RESULTS] " + out)
+            if isinstance(out,bytes):
+                log("[FINAL RESULTS] " + str(out,'utf-8'))
+            else:
+                log("[FINAL RESULTS] " + out)
 
         if isinstance(out,str):
             return out.encode('utf-8')
