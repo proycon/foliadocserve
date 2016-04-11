@@ -212,7 +212,10 @@ class DocStore:
                 self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
                 self.data[key].changed = False
             except Exception as e:
-                log("Error reading file " + filename + ": " + str(e))
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
+                log("ERROR reading file " + filename + ": " + str(e))
+                if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
                 self.done(key)
                 raise
             self.lastaccess[key]['NOSID'] = time.time()
@@ -487,6 +490,7 @@ class Root:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
                 log("[QUERY FAILED] FoLiA Error: " + str(e))
+                if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
                 raise cherrypy.HTTPError(404, "FoLiA error: " + str(e))
             prevdocid = doc.id
 
@@ -722,6 +726,7 @@ class Root:
             traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
             response['error'] = "Uploaded file is no valid FoLiA Document: " + str(e) + " -- " "\n".join(formatted_lines)
             log(response['error'])
+            if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
             return json.dumps(response).encode('utf-8')
 
         filename = self.docstore.getfilename( (namespace, doc.id))
