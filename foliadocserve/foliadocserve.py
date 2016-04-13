@@ -275,6 +275,19 @@ class DocStore:
                 del self.changelog[key]
             self.done(key)
 
+    def delete(self, key):
+        self.unload(key,False)
+        filename = self.getfilename(key)
+        if os.path.exists(filename):
+            if self.git:
+                message = "Deleting document"
+                log("Doing git commit for " + filename + " -- " + message.replace("\n", " -- "))
+                r = os.system("git rm " + filename + " && git commit -m \"" + message.replace('"','') + "\"")
+                if r != 0:
+                    log("ERROR during git rm/commit of " +filename)
+            else:
+                os.unlink(self.getfilename(key))
+
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
         if key[0] == "testflat":
@@ -749,6 +762,12 @@ class Root:
             i += 1
         self.docstore.save((namespace,doc.id), "Initial upload")
         return json.dumps(response).encode('utf-8')
+
+    @cherrypy.expose
+    def delete(self, *args):
+        namespace, docid = self.docselector(*args)
+        log("Delete, namespace=" + namespace)
+        self.docstore.delete((namespace,docid))
 
 
 
