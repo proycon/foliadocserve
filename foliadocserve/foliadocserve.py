@@ -163,7 +163,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
 
 class DocStore:
-    def __init__(self, workdir, expiretime, git=False):
+    def __init__(self, workdir, expiretime, git=False, debug=False):
         log("Initialising document store in " + workdir)
         self.workdir = workdir
         self.expiretime = expiretime
@@ -175,6 +175,7 @@ class DocStore:
         self.lock = set() #will contain (namespace,docid) of temporarily locked documents, loading/unloading/saving are blocking operations
         self.setdefinitions = {}
         self.git = git
+        self.debug = debug
         super().__init__()
 
     def getfilename(self, key):
@@ -191,10 +192,13 @@ class DocStore:
 
     def use(self, key):
         while key in self.lock:
+            if self.debug >= 2: log("[waiting for lock " + "/".join(key))
             time.sleep(0.1)
         self.lock.add(key)
+        if self.debug >= 2: log("[acquired lock " + "/".join(key))
 
     def done(self, key):
+        if self.debug >= 2: log("[releasing lock " + "/".join(key))
         self.lock.remove(key)
 
 
@@ -256,7 +260,7 @@ class DocStore:
                 r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git add/commit of " + self.getfilename(key))
-                self.done(key)
+            self.done(key)
 
 
     def unload(self, key, save=True):
@@ -422,6 +426,7 @@ class Root:
                 docsel, rawquery = getdocumentselector(rawquery)
                 if not docsel: docsel = prevdocsel
                 self.docstore.use(docsel)
+                if self.debug >= 2: log("[acquired lock " + "/".join(docsel))
                 if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
                     query = "GET"
@@ -451,6 +456,7 @@ class Root:
                 log("[QUERY FAILED] FQL Syntax Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL syntax error: " + str(e))
             finally:
+                if self.debug >= 2: log("[releasing lock " + "/".join(docsel))
                 self.docstore.done(docsel)
 
             queries.append( (query, rawquery))
@@ -766,7 +772,7 @@ def main():
         'request.show_tracebacks':False,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
-    docstore = DocStore(args.workdir, args.expirationtime, args.git)
+    docstore = DocStore(args.workdir, args.expirationtime, args.git, args.debug)
     bgtask = BackgroundTaskQueue(cherrypy.engine)
     bgtask.subscribe()
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
