@@ -65,6 +65,20 @@ def gettoc(element, processed = set()):
     return toc
 
 
+def isrtl(doc):
+    """Checks if the document should be rendered in right-to-left fashion"""
+    if doc.metadata:
+        if doc.metadatatype == folia.MetaDataType.NATIVE:
+            if 'direction' in doc.metadata and doc.metadata['direction'] == 'rtl':
+                return True
+
+        lang = doc.language()
+        if lang:
+            return lang.lower() in ('ar','fa','ur','ps','sd','he','yi','dv','ug','ara','fas','urd','pus','snd','heb','yid','arc','syc','syr','div','uig','arz','ary','auz','ayl','acm','acw','acx','aec','afb','ajp','apd','arb','arq','arabic','hebrew','urdu','persian','farsi')   #non-exhaustive list of ISO-639-1 and -3 language codes (and some names) that are written right-to-left
+    return False
+
+
+
 def getslices(doc, Class, size=100):
     for i, element in enumerate(doc.select(Class)):
         if i % size == 0:
@@ -87,6 +101,8 @@ def parseresults(results, doc, **kwargs):
         for tag, size in kwargs['slices']:
             Class = folia.XML2CLASS[tag]
             response['slices'][tag] = list(getslices(doc, Class, size))
+
+    response['rtl'] = isrtl(doc)
 
     if 'customslicesize' in kwargs and kwargs['customslicesize']:
         customslicesize = int(kwargs['customslicesize'])
