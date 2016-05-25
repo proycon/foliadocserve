@@ -628,13 +628,13 @@ class Root:
         if self.docstore.git:
             namespace, docid = self.docselector(*args)
             key = (namespace,docid)
+            os.chdir(os.path.join(self.workdir,namespace))
+
             if key in self.docstore:
-                os.chdir(self.workdir)
                 #unload document (will even still save it if not done yet, cause we need a clean workdir)
                 self.docstore.unload(key)
 
             log("Doing git revert for " + self.docstore.getfilename(key) )
-            os.chdir(self.workdir)
             r = os.system("git checkout " + commithash + " " + self.docstore.getfilename(key) + " && git commit -m \"Reverting to commit " + commithash + "\"")
             if r != 0:
                 log("Error during git revert of " + self.docstore.getfilename(key))
