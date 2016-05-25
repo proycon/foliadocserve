@@ -627,10 +627,10 @@ class Root:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if self.docstore.git:
             namespace, docid = self.docselector(*args)
-            if (namespace,docid) in self.docstore:
+            key = (namespace,docid)
+            if key in self.docstore:
                 os.chdir(self.workdir)
                 #unload document (will even still save it if not done yet, cause we need a clean workdir)
-                key = (namespace,docid)
                 self.docstore.unload(key)
 
             log("Doing git revert for " + self.docstore.getfilename(key) )
