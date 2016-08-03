@@ -416,7 +416,7 @@ def getannotations(element,bookkeeper):
                 #suggestion for deletion
                 correction_special_type = 'suggest deletion'
 
-            annotation = {'id': element.id ,'set': element.set, 'class': element.cls, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
+            annotation = {'id': element.id ,'set': element.set, 'class': element.cls, 'confidence': element.confidence, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
             if element.annotator:
                 annotation['annotator'] = element.annotator
             if element.annotatortype == folia.AnnotatorType.AUTO:
