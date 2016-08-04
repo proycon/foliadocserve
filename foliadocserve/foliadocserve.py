@@ -434,6 +434,7 @@ class Root:
         prevdocsel = None
         sessiondocsel = None
         queries = []
+        metachanges = {}
         for rawquery in rawqueries:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
@@ -458,6 +459,14 @@ class Root:
                             query.format = format
                         except cql.SyntaxError as e :
                             raise fql.SyntaxError("Error in CQL query: " + str(e))
+                    elif rawquery[:5] == "META ":
+                        try:
+                            key, value = rawquery[5:].split('=',maxsplit=1)
+                        except ValueError:
+                            raise fql.SyntaxError("Expected key=value after META keyword")
+                        key = key.strip()
+                        value = value.strip()
+                        metachanges[key] = value
                     else:
                         query = fql.Query(rawquery)
                     if query.format == "python":
@@ -474,6 +483,29 @@ class Root:
 
             queries.append( (query, rawquery))
             prevdocsel = docsel
+
+
+        if metachanges:
+            try:
+                doc = self.docstore[docsel]
+            except NoSuchDocument:
+                log("[QUERY FAILED] No such document")
+                raise cherrypy.HTTPError(404, "Document not found: " + docsel[0] + "/" + docsel[1])
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
+                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": " + str(e))
+                if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
+                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": " + str(e) + "\n\nQuery was: " + rawquery)
+
+            if doc.metadatatype == folia.MetaDataType.NATIVE:
+                self.docstore.lastaccess[docsel][sid] = time.time()
+                log("[METADATA EDIT ON " + "/".join(docsel)  + "]")
+                for key, value in metachanges.items():
+                    self.metadata[key] = value
+            else:
+                raise cherrypy.HTTPError(404, "Unable to edit metadata on document with non-native metadata type (" + "/".join(docsel)+")")
+
 
         results = []
         doc = None
