@@ -487,7 +487,7 @@ def getannotations(element,bookkeeper):
             assert isinstance(annotation, dict)
             yield annotation
         if isinstance(element, folia.AbstractStructureElement) and element is not bookkeeper.stopat:
-            annotation =  element.json(recurse=False)
+            annotation =  element.json(ignorelist=(folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
             annotation['self'] = True #this describes the structure element itself rather than an annotation under it
             annotation['targets'] = [ element.id ]
             if isinstance(element, folia.Word):
