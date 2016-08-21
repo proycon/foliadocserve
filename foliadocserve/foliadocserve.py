@@ -467,11 +467,12 @@ class Root:
                         key = key.strip()
                         value = value.strip()
                         metachanges[key] = value
+                        query = None
                     else:
                         query = fql.Query(rawquery)
-                    if query.format == "python":
+                    if query and query.format == "python":
                         query.format = "xml"
-                    if query.action and not docsel:
+                    if query and query.action and not docsel:
                         raise fql.SyntaxError("Document Server requires USE statement prior to FQL query")
             except fql.SyntaxError as e:
                 log("[QUERY ON " + "/".join(docsel)  + "] " + str(rawquery))
@@ -481,7 +482,8 @@ class Root:
                 if self.debug >= 2: log("[releasing lock " + "/".join(docsel))
                 self.docstore.done(docsel)
 
-            queries.append( (query, rawquery))
+            if query:
+                queries.append( (query, rawquery))
             prevdocsel = docsel
 
 
@@ -514,6 +516,7 @@ class Root:
         doc = None
         prevdocid = None
         multidoc = False #are the queries over multiple distinct documents?
+        format = None
         for query, rawquery in queries:
             try:
                 doc = self.docstore[docsel]
@@ -553,7 +556,10 @@ class Root:
             prevdocid = doc.id
 
         if not format:
-            raise cherrypy.HTTPError(404, "No queries given")
+            if metachanges:
+                return "{}"
+            else:
+                raise cherrypy.HTTPError(404, "No queries given")
         if format.endswith('xml'):
             cherrypy.response.headers['Content-Type']= 'text/xml'
         elif format.endswith('json'):
