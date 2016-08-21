@@ -38,6 +38,10 @@ def getflatargs(params):
         args['setdefinitions'] = bool(int(params['setdefinitions']))
     else:
         args['setdefinitions'] = False
+    if 'metadata' in params:
+        args['metadata'] = bool(int(params['metadata']))
+    else:
+        args['metadata'] = False
     if 'toc' in params:
         args['toc'] = bool(int(params['toc']))
     else:
@@ -92,6 +96,8 @@ def parseresults(results, doc, **kwargs):
         response['declarations'] = tuple(getdeclarations(doc))
     if 'setdefinitions' in kwargs and kwargs['setdefinitions']:
         response['setdefinitions'] =  getsetdefinitions(doc)
+    if 'metadata' in kwargs and kwargs['metadata']:
+        response['metadata'] =  getmetadata(doc)
     if 'toc' in kwargs and kwargs['toc']:
         response['toc'] =  gettoc(doc)
     if 'textclasses' in kwargs:
@@ -528,3 +534,6 @@ def getsetdefinitions(doc):
         if set in doc.setdefinitions:
             setdefs[set] = doc.setdefinitions[set].json()
     return setdefs
+
+def getmetadata(doc):
+    return dict(doc.metadata.items())
