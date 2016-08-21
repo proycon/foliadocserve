@@ -502,7 +502,10 @@ class Root:
                 self.docstore.lastaccess[docsel][sid] = time.time()
                 log("[METADATA EDIT ON " + "/".join(docsel)  + "]")
                 for key, value in metachanges.items():
-                    self.metadata[key] = value
+                    if value == 'NONE':
+                        del doc.metadata[key]
+                    else:
+                        doc.metadata[key] = value
             else:
                 raise cherrypy.HTTPError(404, "Unable to edit metadata on document with non-native metadata type (" + "/".join(docsel)+")")
 
