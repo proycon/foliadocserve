@@ -3,7 +3,7 @@
   <metadata type="native">
     <annotations>
       <token-annotation annotator="ucto" annotatortype="auto" datetime="2014-02-25T22:45:15" set="tokconfig-nl"/>
-      <pos-annotation annotator="frog-mbpos-1.0" annotatortype="auto" datetime="2014-08-20T22:21:17" set="http://ilk.uvt.nl/folia/sets/frog-mbpos-cgn"/>
+      <pos-annotation annotator="frog-mbpos-1.0" annotatortype="auto" datetime="2014-08-20T22:21:17" set="http://ilk.uvt.nl/folia/sets/frog-mbpos-cgn-nonexistant"/>
       <lemma-annotation annotator="frog-mblem-1.1" annotatortype="auto" datetime="2014-08-20T22:21:17" set="http://ilk.uvt.nl/folia/sets/frog-mblem-nl"/>
       <chunking-annotation annotator="frog-chunker-1.0" annotatortype="auto" datetime="2014-08-20T22:21:17" set="http://ilk.uvt.nl/folia/sets/frog-chunker-nl"/>
       <entity-annotation annotator="frog-mwu-1.0" annotatortype="auto" datetime="2014-08-20T22:21:17" set="http://ilk.uvt.nl/folia/sets/frog-mwu-nl"/>
