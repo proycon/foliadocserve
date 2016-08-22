@@ -496,9 +496,9 @@ class Root:
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
-                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": " + str(e))
+                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e))
                 if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
-                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": " + str(e) + "\n\nQuery was: " + rawquery)
+                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e) + "\n\nQuery was: " + rawquery)
 
             if doc.metadatatype == folia.MetaDataType.NATIVE:
                 self.docstore.lastaccess[docsel][sid] = time.time()
@@ -550,9 +550,9 @@ class Root:
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
-                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": " + str(e))
+                log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e))
                 if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
-                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": " + str(e) + "\n\nQuery was: " + rawquery)
+                raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e) + "\n\nQuery was: " + rawquery)
             prevdocid = doc.id
 
         if not format:
