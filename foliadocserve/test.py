@@ -151,7 +151,7 @@ def test(doc, testname, testmessage = ""):
             except StopIteration:
                 testmessage = "Testing presence of new correction: Failed!\n"
                 testresult = False
-            if e:
+            if testresult:
                 try:
                     e2 = next(e.select(folia.Entity) )
                     testmessage = "Testing presence of corrected entity: Ok!\n"
