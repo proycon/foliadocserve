@@ -29,7 +29,8 @@ def test(doc, testname, testmessage = ""):
             except StopIteration:
                 testmessage = "Testing presence of new correction: Failed!\n"
                 testresult = False
-            testresult, testmessage = testequal(e.text(),"wegreden", testmessage + "Testing text", testresult)
+            if testresult:
+                testresult, testmessage = testequal(e.text(),"wegreden", testmessage + "Testing text", testresult)
         elif testname in ("multiannotchange"):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.6.w.8'].text(),"het", testmessage + "Testing text", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.6.w.8'].pos(),"LID(onbep,stan,rest)", testmessage + "Testing pos class", testresult)
@@ -43,10 +44,11 @@ def test(doc, testname, testmessage = ""):
             except StopIteration:
                 testmessage = "Testing presence of new entity: Failed!\n"
                 testresult = False
-            testresult, testmessage = testequal(e.cls,"per", testmessage + "Testing class of new entity", testresult)
-            testresult, testmessage = testequal(len(e.wrefs()),2, testmessage + "Testing span size", testresult)
-            testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.1.w.12' , testmessage + "Testing order (1/2)", testresult)
-            testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.1.w.12b' , testmessage + "Testing order (2/2)", testresult)
+            if testresult:
+                testresult, testmessage = testequal(e.cls,"per", testmessage + "Testing class of new entity", testresult)
+                testresult, testmessage = testequal(len(e.wrefs()),2, testmessage + "Testing span size", testresult)
+                testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.1.w.12' , testmessage + "Testing order (1/2)", testresult)
+                testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.1.w.12b' , testmessage + "Testing order (2/2)", testresult)
         elif testname == "worddelete":
             testresult, testmessage = testequal('untitleddoc.p.3.s.8.w.10' in doc,False, testmessage + "Testing absence of word in index", testresult)
         elif testname == "wordsplit":
@@ -63,17 +65,18 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.12'].text(),"hoorden", testmessage + "Testing original word", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.16'].text(),"we", testmessage + "Testing new word", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.16'].next().id,"untitleddoc.p.3.s.13.w.12", testmessage + "Testing order", testresult)
-        elif testname ==  ("spanchange"):
+        elif testname == "spanchange":
             try:
                 e = next( doc['untitleddoc.p.3.s.9'].select(folia.Entity) )
                 testmessage = "Testing presence of new entity: Ok!\n"
             except StopIteration:
                 testmessage = "Testing presence of new entity: Failed!\n"
                 testresult = False
-            testresult, testmessage = testequal(len(e.wrefs()),3, testmessage + "Testing span size", testresult)
-            testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing order (1/3)", testresult)
-            testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
-            testresult, testmessage = testequal(e.wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
+            if testresult:
+                testresult, testmessage = testequal(len(e.wrefs()),3, testmessage + "Testing span size", testresult)
+                testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing order (1/3)", testresult)
+                testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
+                testresult, testmessage = testequal(e.wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
         elif testname in ( "newoverlapspan", "correction_newoverlapspan"):
             gen =  doc['untitleddoc.p.3.s.9'].select(folia.Entity)
             try:
@@ -83,10 +86,11 @@ def test(doc, testname, testmessage = ""):
             except StopIteration:
                 testmessage = "Testing presence of new entities: Failed!\n"
                 testresult = False
-            testresult, testmessage = testequal(len(e.wrefs()),2, testmessage + "Testing original span size", testresult)
-            testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing original entity", testresult)
-            testresult, testmessage = testequal(len(e2.wrefs()),3, testmessage + "Testing extra span size", testresult)
-            testresult, testmessage = testequal(e2.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing extra entity", testresult)
+            if testresult:
+                testresult, testmessage = testequal(len(e.wrefs()),2, testmessage + "Testing original span size", testresult)
+                testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing original entity", testresult)
+                testresult, testmessage = testequal(len(e2.wrefs()),3, testmessage + "Testing extra span size", testresult)
+                testresult, testmessage = testequal(e2.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing extra entity", testresult)
         elif testname in ( "spandeletion"):
             try:
                 e = next( doc['untitleddoc.p.3.s.9'].select(folia.Entity) )
@@ -172,6 +176,22 @@ def test(doc, testname, testmessage = ""):
                 testresult = False
             if testresult:
                 testresult, testmessage = testequal(e.original(0).id, 'untitleddoc.p.3.s.9.entity.1',  testmessage + "Testing whether original span is now under original in correction", testresult)
+        elif testname ==  "comment_span":
+            try:
+                e = next( doc['untitleddoc.p.3.s.1.w.3'].findspans(folia.Chunk) )
+                testmessage = "Obtaining chunk: Ok!\n"
+            except StopIteration:
+                testmessage = "Obtaining chunk: Failed!\n"
+                testresult = False
+            if testresult:
+                try:
+                    comment = e.annotation(folia.Comment)
+                    testmessage = "Testing presence of new comment: Ok!\n"
+                except:
+                    testmessage = "Testing presence of new comment: Failed!\n"
+                    testresult = False
+                if testresult:
+                    testresult, testmessage = testequal(comment.value, "This is a comment", testmessage+ "Testing comment value", testresult)
         else:
             testresult = False
             testmessage += "No such test: " + testname
