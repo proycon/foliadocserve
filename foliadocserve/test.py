@@ -192,6 +192,27 @@ def test(doc, testname, testmessage = ""):
                     testresult = False
                 if testresult:
                     testresult, testmessage = testequal(comment.value, "This is a comment", testmessage+ "Testing comment value", testresult)
+        elif testname == "confidence_set":
+            lemma = doc['untitleddoc.p.3.s.1.w.3'].annotation(folia.LemmaAnnotation)
+            testresult, testmessage = testequal(lemma.confidence, 0.88,  testmessage + "Testing confidence value", testresult)
+        elif testname == "confidence_unset":
+            try:
+                e = next( doc['untitleddoc.p.3.s.1.w.3'].findspans(folia.Chunk) )
+                testmessage = "Obtaining chunk: Ok!\n"
+            except StopIteration:
+                testmessage = "Obtaining chunk: Failed!\n"
+                testresult = False
+            if testresult:
+                testresult, testmessage = testequal(e.confidence, None,  testmessage + "Testing absence of confidence value", testresult)
+        elif testname == "confidence_edit":
+            try:
+                e = next( doc['untitleddoc.p.3.s.1.w.3'].findspans(folia.Chunk) )
+                testmessage = "Obtaining chunk: Ok!\n"
+            except StopIteration:
+                testmessage = "Obtaining chunk: Failed!\n"
+                testresult = False
+            if testresult:
+                testresult, testmessage = testequal(e.confidence, 0.88,  testmessage + "Testing confidence value", testresult)
         else:
             testresult = False
             testmessage += "No such test: " + testname
