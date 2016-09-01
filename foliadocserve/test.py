@@ -20,6 +20,17 @@ def test(doc, testname, testmessage = ""):
     try:
         if testname in ( "textchange", "correction_textchange"):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.2'].text(),"mijn", testmessage + "Testing text", testresult)
+        elif testname == "classchange_token":
+            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.2'].annotation(folia.LemmaAnnotation).cls,"mijn", testmessage + "Testing class", testresult)
+        elif testname == "classchange_span":
+            try:
+                e = next( doc['untitleddoc.p.3.s.1.w.3'].findspans(folia.Chunk) )
+                testmessage = "Obtaining chunk: Ok!\n"
+            except StopIteration:
+                testmessage = "Obtaining chunk: Failed!\n"
+                testresult = False
+            if testresult:
+                testresult, testmessage = testequal(e.cls, 'X',  testmessage + "Testing class", testresult)
         elif testname == "textmerge":
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.14'].text(),"wegreden", testmessage + "Testing text", testresult)
         elif testname == "correction_textmerge":
