@@ -30,6 +30,7 @@ import sys
 import traceback
 import threading
 import datetime
+import shutil
 import queue
 from collections import defaultdict
 import cherrypy
@@ -286,7 +287,39 @@ class DocStore:
                 if r != 0:
                     log("ERROR during git rm/commit of " +filename)
             else:
+                log("Removing " + filename)
                 os.unlink(self.getfilename(key))
+
+
+    def copy(self, key, newkey):
+        if key in self:
+            self.save(key) #ensure latest changes are flushed to disk
+        filename = self.getfilename(key)
+        if os.path.exists(filename):
+            newfilename = self.getfilename(newkey)
+            if os.path.exists(newfilename): #never overwrites
+                log("Target file already exists (" + newfilename + ")")
+            else:
+                log("Copying " + filename + " to " + newfilename)
+                shutil.copyfile(filename, newfilename)
+
+    def move(self, key, newkey):
+        self.unload(key)
+        filename = self.getfilename(key)
+        if os.path.exists(filename):
+            newfilename = self.getfilename(newkey)
+            if os.path.exists(newfilename): #never overwrites
+                log("Target file already exists (" + newfilename + ")")
+            else:
+                if self.git:
+                    message = "Moving document"
+                    log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
+                    r = os.system("git mv " + filename + " " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
+                    if r != 0:
+                        log("ERROR during git mv/commit of " +filename)
+                else:
+                    log("Moving " + filename + " to " + newfilename)
+                    shutil.movefile(filename, newfilename)
 
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
@@ -811,7 +844,27 @@ class Root:
         namespace, docid = self.docselector(*args)
         log("Delete, namespace=" + namespace)
         self.docstore.delete((namespace,docid))
+        return "{}"
 
+    @cherrypy.expose
+    def copy(self, *args):
+        if 'target' in cherrypy.request.params:
+            key = self.docselector(*args)
+            newkey = self.docselect(*cherrypy.request.params['target'].split('/'))
+            self.docstore.copy(key,newkey)
+            return "{}"
+        else:
+            raise cherrypy.HTTPError(404, "No target specified")
+
+    @cherrypy.expose
+    def move(self, *args):
+        if 'target' in cherrypy.request.params:
+            key = self.docselector(*args)
+            newkey = self.docselect(*cherrypy.request.params['target'].split('/'))
+            self.docstore.copy(key,newkey)
+            return "{}"
+        else:
+            raise cherrypy.HTTPError(404, "No target specified")
 
 
 def main():
