@@ -861,7 +861,7 @@ class Root:
         if 'target' in cherrypy.request.params:
             key = self.docselector(*args)
             newkey = self.docselect(*cherrypy.request.params['target'].split('/'))
-            self.docstore.copy(key,newkey)
+            self.docstore.move(key,newkey)
             return "{}"
         else:
             raise cherrypy.HTTPError(404, "No target specified")
