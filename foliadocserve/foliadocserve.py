@@ -258,7 +258,7 @@ class DocStore:
                 self.changelog[key] = [] #reset changelog
                 message = message.strip("\n")
                 log("Doing git commit for " + self.getfilename(key) + " -- " + message.replace("\n", " -- "))
-                r = os.system("git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
+                r = os.system("cd " + targetdir + " && git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git add/commit of " + self.getfilename(key))
             self.done(key)
@@ -281,9 +281,10 @@ class DocStore:
         filename = self.getfilename(key)
         if os.path.exists(filename):
             if self.git:
+                targetdir = self.getpath(key)
                 message = "Deleting document"
                 log("Doing git commit for " + filename + " -- " + message.replace("\n", " -- "))
-                r = os.system("git rm " + filename + " && git commit -m \"" + message.replace('"','') + "\"")
+                r = os.system("cd " + targetdir + " && git rm " + filename + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git rm/commit of " +filename)
             else:
@@ -301,11 +302,12 @@ class DocStore:
                 log("Target file already exists (" + newfilename + ")")
             else:
                 log("Copying " + filename + " to " + newfilename)
+                targetdir = self.getpath(newkey)
                 shutil.copyfile(filename, newfilename)
                 if self.git:
                     message = "Adding copied document"
                     log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
-                    r = os.system("git add " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
+                    r = os.system("cd " + targetdir + " && git add " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
                     if r != 0:
                         log("ERROR during git add/commit of " + newfilename)
 
