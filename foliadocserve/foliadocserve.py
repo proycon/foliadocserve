@@ -856,7 +856,7 @@ class Root:
     def copy(self, *args,**params):
         if 'target' in params:
             key = self.docselector(*args)
-            newkey = self.docselect(*params['target'].split('/'))
+            newkey = self.docselector(*params['target'].split('/'))
             self.docstore.copy(key,newkey)
             return "{}"
         else:
@@ -866,7 +866,7 @@ class Root:
     def move(self, *args,**params):
         if 'target' in params: 
             key = self.docselector(*args)
-            newkey = self.docselect(*params['target'].split('/'))
+            newkey = self.docselector(*params['target'].split('/'))
             self.docstore.move(key,newkey)
             return "{}"
         else:
