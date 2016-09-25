@@ -780,15 +780,21 @@ class Root:
         else:
             return json.dumps({'sessions': len([s for s in self.docstore.lastaccess[(namespace,docid)] if s != 'NOSID' ])}).encode('utf-8')
 
-
+    def listdir(self, rootdir, output):
+        for d in os.listdir(os.path.join(self.docstore.workdir,rootdir)):
+            if d != 'testflat' and d[0] != '.' and os.path.isdir(os.path.join(self.docstore.workdir, rootdir, d)):
+                output.append(os.path.join(rootdir, d))
+                self.listdir(os.path.join(rootdir, d), output)
+        return output
 
     @cherrypy.expose
     def namespaces(self, *namespaceargs):
-        namespace = validatenamespace('/'.join(namespaceargs))
+        rootdir = validatenamespace('/'.join(namespaceargs))
+        namespaces = []
         try:
-            namespaces = [ x for x in os.listdir(os.path.join(self.docstore.workdir,namespace)) if x != "testflat" and x[0] != "." and os.path.isdir(os.path.join(self.docstore.workdir,namespace,x)) ]
+            self.listdir(rootdir, namespaces)
         except FileNotFoundError:
-            raise cherrypy.HTTPError(404, "Namespace not found: " + str(namespace))
+            raise cherrypy.HTTPError(404, "Namespace not found: " + str(rootdir))
         return json.dumps({
             'namespaces': namespaces
         })
