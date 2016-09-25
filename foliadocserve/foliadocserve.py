@@ -853,20 +853,20 @@ class Root:
         return "{}"
 
     @cherrypy.expose
-    def copy(self, *args):
-        if 'target' in cherrypy.request.params:
+    def copy(self, *args,**params):
+        if 'target' in params:
             key = self.docselector(*args)
-            newkey = self.docselect(*cherrypy.request.params['target'].split('/'))
+            newkey = self.docselect(*params['target'].split('/'))
             self.docstore.copy(key,newkey)
             return "{}"
         else:
             raise cherrypy.HTTPError(404, "No target specified")
 
     @cherrypy.expose
-    def move(self, *args):
-        if 'target' in cherrypy.request.params:
+    def move(self, *args,**params):
+        if 'target' in params: 
             key = self.docselector(*args)
-            newkey = self.docselect(*cherrypy.request.params['target'].split('/'))
+            newkey = self.docselect(*params['target'].split('/'))
             self.docstore.move(key,newkey)
             return "{}"
         else:
