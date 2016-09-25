@@ -304,22 +304,25 @@ class DocStore:
                 shutil.copyfile(filename, newfilename)
 
     def move(self, key, newkey):
-        self.unload(key)
-        filename = self.getfilename(key)
-        if os.path.exists(filename):
-            newfilename = self.getfilename(newkey)
-            if os.path.exists(newfilename): #never overwrites
-                log("Target file already exists (" + newfilename + ")")
-            else:
-                if self.git:
-                    message = "Moving document"
-                    log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
-                    r = os.system("git mv " + filename + " " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
-                    if r != 0:
-                        log("ERROR during git mv/commit of " +filename)
-                else:
-                    log("Moving " + filename + " to " + newfilename)
-                    shutil.movefile(filename, newfilename)
+        self.copy(key, newkey)
+        self.delete(key)
+
+        #self.unload(key)
+        #filename = self.getfilename(key)
+        #if os.path.exists(filename):
+        #    newfilename = self.getfilename(newkey)
+        #    if os.path.exists(newfilename): #never overwrites
+        #        log("Target file already exists (" + newfilename + ")")
+        #    else:
+        #        if self.git:
+        #            message = "Moving document"
+        #            log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
+        #            r = os.system("git mv " + filename + " " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
+        #            if r != 0:
+        #                log("ERROR during git mv/commit of " +filename)
+        #        else:
+        #            log("Moving " + filename + " to " + newfilename)
+        #            shutil.movefile(filename, newfilename)
 
     def __getitem__(self, key):
         assert isinstance(key, tuple) and len(key) == 2
