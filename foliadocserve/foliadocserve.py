@@ -302,6 +302,13 @@ class DocStore:
             else:
                 log("Copying " + filename + " to " + newfilename)
                 shutil.copyfile(filename, newfilename)
+                if self.git:
+                    message = "Adding copied document"
+                    log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
+                    r = os.system("git add " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
+                    if r != 0:
+                        log("ERROR during git add/commit of " + newfilename)
+
 
     def move(self, key, newkey):
         self.copy(key, newkey)
