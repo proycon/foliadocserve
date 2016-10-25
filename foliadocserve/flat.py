@@ -58,7 +58,8 @@ def getflatargs(params):
 
 
 
-def gettoc(element, processed = set()):
+def gettoc(element, processed = None):
+    if processed is None: processed = set()
     toc = [] #nested recursive list of (div.id, headtext, [toc])   (where toc is the same recursive part)
     for head in element.select(folia.Head):
         division = head.ancestor(folia.Division)
