@@ -18,6 +18,7 @@
 
 import json
 import random
+from collections import deque
 from pynlpl.formats import folia,fql
 from foliatools.foliatextcontent import linkstrings
 
@@ -489,7 +490,17 @@ def getannotations(element,bookkeeper):
             annotation = element.json(ignorelist=(folia.Word,)) #don't descend into words (do descend for nested span annotations)
             annotation['span'] = True
             annotation['targets'] = [ x.id for x in element.wrefs() ]
-            annotation['spanroles'] = [ {'type':role.XMLTAG, 'words': [x.id for x in role.wrefs()]} for role in element.select(folia.AbstractSpanRole) ]
+            #get all spanroles
+            #iterate over all children, we have to realign them with the exact spanroles as this information is not explicit
+            if 'children' in annotation:
+                for child in annotation['children']:
+                    if 'id' in child and child['id']:
+                        role = element.doc[child['id']]
+                        if isinstance(role, folia.AbstractSpanRole):
+                            assert role.XMLTAG == child['type']
+                            #set targets
+                            child['isspanrole'] = True
+                            child['targets'] = [x.id for x in role.wrefs()]
             annotation['layerparent'] = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
             assert isinstance(annotation, dict)
             yield annotation
