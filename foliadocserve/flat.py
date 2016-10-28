@@ -491,7 +491,6 @@ def getannotations(element,bookkeeper):
             annotation['span'] = True
             annotation['targets'] = [ x.id for x in element.wrefs() ]
             #get all spanroles
-            #iterate over all children, we have to realign them with the exact spanroles as this information is not explicit
             if 'children' in annotation:
                 for child in annotation['children']:
                     if 'id' in child and child['id']:
@@ -505,8 +504,10 @@ def getannotations(element,bookkeeper):
             assert isinstance(annotation, dict)
             yield annotation
         if isinstance(element, folia.AbstractStructureElement) and element is not bookkeeper.stopat:
-            annotation =  element.json(ignorelist=(folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
+            annotation =  element.json(ignorelist=(folia.AbstractStructureElement,folia.Correction, folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
             annotation['self'] = True #this describes the structure element itself rather than an annotation under it
+            if element.parent and element.parent.id:
+                annotation['parent'] = element.parent.id
             annotation['targets'] = [ element.id ]
             if isinstance(element, folia.Word):
                 prevword = element.previous(folia.Word,None)
