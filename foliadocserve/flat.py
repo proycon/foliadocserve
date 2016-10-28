@@ -520,6 +520,8 @@ def getannotations(element,bookkeeper):
                     annotation['nextword'] =  nextword.id
                 else:
                     annotation['nextword'] = None
+            elif not isinstance(element, (folia.Text, folia.Division, folia.Speech, folia.Morpheme) ): #exclude elements that are generally too big or small
+                annotation['wordorder'] = [ w.id for w in element.words() ]
             yield annotation
         if isinstance(element, folia.AbstractStructureElement) or isinstance(element, folia.AbstractAnnotationLayer) or isinstance(element, folia.AbstractSpanAnnotation) or isinstance(element, folia.Suggestion):
             for child in element:
