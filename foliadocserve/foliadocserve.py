@@ -238,7 +238,8 @@ class DocStore:
         elif hasattr(doc,'changed') and doc.changed:
             self.use(key)
             log("Saving " + self.getfilename(key) + " - " + message)
-            doc.save()
+            doc.save(self.getfilename(key) + '.tmp')
+            os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
             if self.git:
                 if os.path.exists(self.workdir + '/.git'):
                     # entire workdir is one git repo (old style)
