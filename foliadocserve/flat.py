@@ -454,6 +454,7 @@ def getannotations(element,bookkeeper):
                 pass
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
+            annotation['scope'] = [ p.id ]
             yield annotation
         elif isinstance(element,folia.TextContent) or isinstance(element, folia.AbstractTokenAnnotation) or isinstance(element, folia.String):
             annotation = element.json()
@@ -461,6 +462,7 @@ def getannotations(element,bookkeeper):
             #log("Parent of " + str(repr(element))+ " is "+ str(repr(p)))
             p = element.ancestor(folia.AbstractStructureElement)
             annotation['targets'] = [ p.id ]
+            annotation['scope'] = [ p.id ]
             if isinstance(element,folia.TextContent):
                 if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
                     annotation['htmltext'] = gethtmltext(element,element.cls)
@@ -489,7 +491,8 @@ def getannotations(element,bookkeeper):
 
             annotation = element.json(ignorelist=(folia.Word,)) #don't descend into words (do descend for nested span annotations)
             annotation['span'] = True
-            annotation['targets'] = [ x.id for x in element.wrefs() ]
+            annotation['targets'] = [ x.id for x in element.wrefs(recurse=False) ]
+            annotation['scope'] = [ x.id for x in element.wrefs(recurse=True) ]
             #get all spanroles
             if 'children' in annotation:
                 for child in annotation['children']:
@@ -499,7 +502,8 @@ def getannotations(element,bookkeeper):
                             assert role.XMLTAG == child['type']
                             #set targets
                             child['isspanrole'] = True
-                            child['targets'] = [x.id for x in role.wrefs()]
+                            child['targets'] = [x.id for x in role.wrefs(recurse=False)]
+                            child['scope'] = [x.id for x in role.wrefs(recurse=True)]
             annotation['layerparent'] = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
             assert isinstance(annotation, dict)
             yield annotation
@@ -509,6 +513,7 @@ def getannotations(element,bookkeeper):
             if element.parent and element.parent.id:
                 annotation['parent'] = element.parent.id
             annotation['targets'] = [ element.id ]
+            annotation['scope'] = [ element.id ]
             if isinstance(element, folia.Word):
                 prevword = element.previous(folia.Word,None)
                 if prevword:
