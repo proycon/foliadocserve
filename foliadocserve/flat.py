@@ -482,12 +482,18 @@ def getannotations(element,bookkeeper):
                         annotation['hassuggestions'].append(c.id)
             assert isinstance(annotation, dict)
             yield annotation
-        elif isinstance(element, folia.AbstractSpanAnnotation):
+        elif isinstance(element, folia.AbstractSpanAnnotation) and not isinstance(element, folia.AbstractSpanRole):
             if not element.id and ((element.REQUIRED_ATTRIBS and folia.Attrib.ID in element.REQUIRED_ATTRIBS) or (element.OPTIONAL_ATTRIBS and folia.Attrib.ID in element.OPTIONAL_ATTRIBS)):
                 #span annotation elements must have an ID for the editor to work with them, let's autogenerate one:
                 element.id = element.doc.data[0].generate_id(element)
                 #and add to index
                 element.doc.index[element.id] = element
+
+            #also generate IDs for span roles prior to json serialisation:
+            for child in element.select(folia.AbstractSpanRole, ignore=(folia.Word,folia.Morpheme)):
+                if child.id is None:
+                    child.id = element.generate_id(child)
+                    child.doc.index[child.id] = child
 
             annotation = element.json(ignorelist=(folia.Word,)) #don't descend into words (do descend for nested span annotations)
             annotation['span'] = True
