@@ -193,13 +193,13 @@ class DocStore:
 
     def use(self, key):
         while key in self.lock:
-            if self.debug >= 2: log("[waiting for lock " + "/".join(key))
+            if self.debug >= 2: log("[waiting for lock " + "/".join(key)+"]")
             time.sleep(0.1)
         self.lock.add(key)
-        if self.debug >= 2: log("[acquired lock " + "/".join(key))
+        if self.debug >= 2: log("[acquired lock " + "/".join(key)+"]")
 
     def done(self, key):
-        if self.debug >= 2: log("[releasing lock " + "/".join(key))
+        if self.debug >= 2: log("[releasing lock " + "/".join(key)+"]")
         self.lock.remove(key)
 
 
@@ -476,6 +476,8 @@ class Root:
 
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
+        flatargs['debug'] = self.debug
+        flatargs['logfunction'] = log
 
         prevdocsel = None
         sessiondocsel = None
@@ -486,7 +488,7 @@ class Root:
                 docsel, rawquery = getdocumentselector(rawquery)
                 if not docsel: docsel = prevdocsel
                 self.docstore.use(docsel)
-                if self.debug >= 2: log("[acquired lock " + "/".join(docsel))
+                if self.debug >= 2: log("[acquired lock " + "/".join(docsel)+"]")
                 if not sessiondocsel: sessiondocsel = docsel
                 if rawquery == "GET":
                     query = "GET"
@@ -625,6 +627,7 @@ class Root:
             if multidoc:
                 raise "{} //multidoc response, not producing results"
             elif doc:
+                log("[Parsing results for FLAT]")
                 out =  parseresults(results, doc, **flatargs)
         else:
             if len(results) > 1:
