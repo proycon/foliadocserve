@@ -318,18 +318,14 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
                 try:
                     for child in element.new():
                         if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                            subhtml, subid = getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
-                            if subhtml: html += subhtml
-                            if subid: subids.append(subid)
+                            getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
                 except folia.NoSuchAnnotation:
                     pass
             elif element.hascurrent():
                 try:
                     for child in element.current():
                         if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                            subhtml, subid = getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
-                            if subhtml: html += subhtml
-                            if subid: subids.append(subid)
+                            getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
                 except folia.NoSuchAnnotation:
                     pass
 
@@ -337,9 +333,7 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
                 try:
                     for child in element.original():
                         if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                            _, subid = getstructure(child, structure, None, incorrection=element.id, debug=debug,log=log)
-                            #ignore HTML reply 
-                            if subid: subids.append(subid)
+                            getstructure(child, structure, None, incorrection=element.id, debug=debug,log=log)
                 except folia.NoSuchAnnotation:
                     pass
 
@@ -348,31 +342,27 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
                     try:
                         for child in suggestion:
                             if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                                _, subid = getstructure(child, structure, None, incorrection=element.id, debug=debug,log=log)
-                                #ignore HTML reply 
-                                if subid: subids.append(subid)
+                                getstructure(child, structure, None, incorrection=element.id, debug=debug,log=log)
                     except folia.NoSuchAnnotation:
                         pass
 
             #The correction annotation itself will be outputted later by getannotations()
 
             if debug: log("Done processing " + element.XMLTAG + "; ID " + str(repr(element.id)))
-            return html, subids
+            return html, []
         elif isinstance(element, folia.AbstractStructureElement):
             for child in element:
                 if isinstance(child, (folia.AbstractStructureElement, folia.Correction)):
                     if bookkeeper and not bookkeeper.stop:
-                        subhtml, subid  = getstructure(child, structure, bookkeeper, debug=debug,log=log)
-                        if subhtml:
-                            html += subhtml
-                        if subid:
-                            subids.append(subid)
+                        subhtml, newsubids  = getstructure(child, structure, bookkeeper, debug=debug,log=log)
+                        if subhtml: html += subhtml
+                        subids += newsubids
                 elif isinstance(child, folia.MorphologyLayer) or isinstance(child, folia.PhonologyLayer):
                     for subchild in child:
                         if bookkeeper and not bookkeeper.stop:
-                            subhtml, subid  = getstructure(subchild, structure, bookkeeper, debug=debug,log=log)
-                            if subid:
-                                subids.append(subid)
+                            _, newsubids  = getstructure(subchild, structure, bookkeeper, debug=debug,log=log)
+                            #ignoring html
+                            subids += newsubids
 
             try:
                 label = "<span class=\"lbl\">" + gethtmltext(element) + "</span>" #only when text is explicitly associated with the element
@@ -424,7 +414,7 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
 
             html += "</" + htmltag + ">"
 
-            structure[element.id] =  element.json(ignorelist=(folia.AbstractStructureElement,folia.Correction, folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
+            structure[element.id] =  element.json(ignorelist=(folia.AbstractStructureElement,folia.AbstractAnnotationLayer, folia.Correction, folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
             if element.parent and element.parent.id:
                 structure[element.id]['parent'] = element.parent.id
             #structure[element.id]['targets'] = [ element.id ]
