@@ -657,6 +657,7 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
             correction_special_type = 'suggest insertion'
     if element.hassuggestions():
         for i, suggestion in enumerate(element.suggestions()):
+            suggestion_json = suggestion.json(recurse=False)
             if suggestion.merge:
                 correction_merge = suggestion.merge.split(' ')
             if suggestion.split:
@@ -666,10 +667,10 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
                 for child in suggestion:
                     if isinstance(child,folia.AbstractStructureElement):
                         subids.append(child.id)
-                correction_suggestions.append(subids)
+                suggestion_json['structure'] = subids
             else:
-                subids = [ subid for subid in getannotations_helper(suggestion,structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id+'/suggestion.' + str(i+1)) ]
-                correction_suggestions.append(subids)
+                suggestion_json['annotations'] = [ subid for subid in getannotations_helper(suggestion,structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id+'/suggestion.' + str(i+1)) ]
+            correction_suggestions.append(suggestion_json)
     elif element.hassuggestions(True):
         #suggestion for deletion
         correction_special_type = 'suggest deletion'
