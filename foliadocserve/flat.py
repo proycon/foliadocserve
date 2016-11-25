@@ -153,7 +153,10 @@ def parseresults(results, doc, **kwargs):
                 if isinstance(element,fql.SpanSet):
                     for e in element:
                         structure = {}
-                        html = getstructure(e, structure, bookkeeper, debug=debug,log=log) if isinstance(e, (folia.AbstractStructureElement, folia.Correction)) else None,
+                        if isinstance(e, (folia.AbstractStructureElement, folia.Correction)):
+                            html, _ = getstructure(e, structure, bookkeeper, debug=debug,log=log)
+                        else:
+                            html = None
                         response['elements'].append({
                             'elementid': e.id if e.id else None,
                             'html': html,
@@ -162,7 +165,10 @@ def parseresults(results, doc, **kwargs):
                         })
                 else:
                     structure = {}
-                    html = getstructure(element, structure, bookkeeper, debug=debug,log=log) if isinstance(element, (folia.AbstractStructureElement, folia.Correction)) else None,
+                    if isinstance(element, (folia.AbstractStructureElement, folia.Correction)):
+                        html, _ = getstructure(element, structure, bookkeeper, debug=debug,log=log)
+                    else:
+                        html = None
                     response['elements'].append({
                         'elementid': element.id if element.id else None,
                         'html': html,
