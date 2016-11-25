@@ -324,14 +324,16 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
                 try:
                     for child in element.new():
                         if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                            getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
+                            subhtml, _ = getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
+                            html += subhtml
                 except folia.NoSuchAnnotation:
                     pass
             elif element.hascurrent():
                 try:
                     for child in element.current():
                         if isinstance(child, folia.AbstractStructureElement) or isinstance(child, folia.Correction):
-                            getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
+                            subhtml, _ = getstructure(child, structure, bookkeeper, incorrection=element.id, debug=debug,log=log)
+                            html += subhtml
                 except folia.NoSuchAnnotation:
                     pass
 
