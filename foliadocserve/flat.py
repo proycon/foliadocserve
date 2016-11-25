@@ -261,7 +261,7 @@ def gethtmltext(element, textclass="current"):
         return s
     elif isinstance(element, folia.Linebreak):
         return "<br/>"
-    elif isinstance(element, folia.TextContent):
+    elif isinstance(element, (folia.TextContent, folia.PhonContent)):
         if checkstrings and element.ancestor(folia.AbstractStructureElement).hasannotation(folia.String) and not any( isinstance(x,folia.TextMarkupString) for x in element):
             linkstrings(element.ancestor(folia.AbstractStructureElement), element.cls)
 
@@ -518,14 +518,14 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             getannotations_correction(element,structure,annotations, auth=auth, log=log,debug=debug)
             if auth:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
-        elif isinstance(element,folia.TextContent) or isinstance(element, folia.AbstractTokenAnnotation) or isinstance(element, folia.String):
+        elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractTokenAnnotation, folia.String)):
             processed = True
             annotations[extid] = element.json()
             annotations[extid]['targets'] = [ structureelement.id ]
             annotations[extid]['scope'] = [ structureelement.id ]
             if auth:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
-            if isinstance(element,folia.TextContent):
+            if isinstance(element,(folia.TextContent, folia.PhonContent)):
                 if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
                     annotations[extid]['htmltext'] = gethtmltext(element,element.cls)
             #See if there is a correction element with only suggestions pertaining to this annotation, link to it using 'hassuggestions':
