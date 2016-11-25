@@ -738,4 +738,7 @@ def getsetdefinitions(doc):
     return setdefs
 
 def getmetadata(doc):
-    return dict(doc.metadata.items())
+    if doc.metadata:
+        return dict(doc.metadata.items())
+    else:
+        return {}
