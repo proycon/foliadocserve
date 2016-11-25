@@ -261,7 +261,7 @@ def gethtmltext(element, textclass="current"):
         return s
     elif isinstance(element, folia.Linebreak):
         return "<br/>"
-    elif isinstance(element, (folia.TextContent, folia.PhonContent)):
+    elif isinstance(element, folia.TextContent):
         if checkstrings and element.ancestor(folia.AbstractStructureElement).hasannotation(folia.String) and not any( isinstance(x,folia.TextMarkupString) for x in element):
             linkstrings(element.ancestor(folia.AbstractStructureElement), element.cls)
 
@@ -586,7 +586,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             annotations[extid]['auth'] = auth
             idlist.append(extid)
 
-        if isinstance(element, folia.AbstractAnnotationLayer) or isinstance(element, folia.AbstractSpanAnnotation) or isinstance(element, folia.Suggestion):
+        if isinstance(element, ( folia.AbstractAnnotationLayer, folia.AbstractSpanAnnotation, folia.Suggestion)): #folia.String should be added but this breaks stuff
             #descend into nested annotations
             subidlist = getannotations_in(element,structure, annotations,debug=debug,log=log)
 
