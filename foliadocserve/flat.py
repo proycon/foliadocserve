@@ -630,36 +630,38 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
         except folia.NoSuchAnnotation:
             pass
 
-    if debug: log("Testing hasnew for correction " + element.id)
     if element.hasnew():
+        subids = getannotations_in(element.new(),structure,annotations, incorrection=element.id,auth=auth,debug=debug,log=log,idprefix=element.id + '/new')
         if correction_structure:
             for child in element.new():
                 if isinstance(child,folia.AbstractStructureElement):
                     correction_new.append(child.id)
         else:
-            for subid in getannotations_in(element.new(),structure,annotations, incorrection=element.id,auth=auth,debug=debug,log=log,idprefix=element.id + '/new'):
+            for subid in subids:
                 correction_new.append(subid)
     elif element.hasnew(True):
         #empty new, this is deletion
         correction_special_type = 'deletion'
     if element.hascurrent():
+        subids = getannotations_in(element.current(),structure,annotations, incorrection=element.id,auth=auth,debug=debug,log=log,idprefix=element.id + '/current')
         try:
             if correction_structure:
                 for child in element.current():
                     if isinstance(child,folia.AbstractStructureElement):
                         correction_current.append(child.id)
             else:
-                for subid in getannotations_in(element.current(),structure,annotations, incorrection=element.id,auth=auth,debug=debug,log=log,idprefix=element.id + '/current'):
+                for subid in subids:
                     correction_current.append(subid)
         except folia.NoSuchAnnotation:
             pass
     if element.hasoriginal():
+        subids = getannotations_in(element.original(),structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id + '/original')
         if correction_structure:
             for child in element.original():
                 if isinstance(child,folia.AbstractStructureElement):
                     correction_original.append(child.id)
         else:
-            for subid in getannotations_in(element.original(),structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id + '/original'):
+            for subid in subids:
                 correction_original.append(subid)
     elif element.hasoriginal(True):
         #empty original, this is an insertion
@@ -676,6 +678,8 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
                 correction_merge = suggestion.merge.split(' ')
             if suggestion.split:
                 correction_split = suggestion.split.split(' ')
+
+            subids = getannotations_in(suggestion,structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id+'/suggestion.' + str(i+1))
             if correction_structure:
                 subids = []
                 for child in suggestion:
@@ -683,7 +687,7 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
                         subids.append(child.id)
                 suggestion_json['structure'] = subids
             else:
-                suggestion_json['annotations'] = [ subid for subid in getannotations_in(suggestion,structure,annotations, incorrection=element.id, auth=False,debug=debug,log=log,idprefix=element.id+'/suggestion.' + str(i+1)) ]
+                suggestion_json['annotations'] = subids
             correction_suggestions.append(suggestion_json)
     elif element.hassuggestions(True):
         #suggestion for deletion
