@@ -582,7 +582,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                 if 'spanannotations' not in structure[layerparent]:
                     structure[layerparent]['spanannotations'] = [extid]
                 else:
-                    structure[layerparent]['spanannotations'].push(extid)
+                    structure[layerparent]['spanannotations'].append(extid)
 
         if processed:
             if debug: log("(" + str(len(idlist)+1) + ") Successfully processed annotation " + element.XMLTAG + " in " + parentelement.XMLTAG + "; extended ID " + extid)
