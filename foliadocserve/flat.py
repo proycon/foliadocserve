@@ -429,7 +429,6 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
             #structure[element.id]['scope'] = [ element.id ]
             structure[element.id]['structure'] = subids
             structure[element.id]['annotations'] = [] #will be set by getannotations() later
-            structure[element.id]['spanlayers'] = [] #will be set by getannotations() later
             if incorrection:
                 structure[element.id]['incorrection'] = incorrection
             if isinstance(element, folia.Word):
@@ -577,7 +576,13 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                             child['isspanrole'] = True
                             child['targets'] = [x.id for x in role.wrefs(recurse=False)]
                             child['scope'] = [x.id for x in role.wrefs(recurse=True)]
-            annotations[extid]['layerparent'] = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
+            layerparent = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
+            annotations[extid]['layerparent'] = layerparent
+            if auth:
+                if 'spanannotations' not in structure[layerparent]:
+                    structure[layerparent]['spanannotations'] = [extid]
+                else:
+                    structure[layerparent]['spanannotations'].push(extid)
 
         if processed:
             if debug: log("(" + str(len(idlist)+1) + ") Successfully processed annotation " + element.XMLTAG + " in " + parentelement.XMLTAG + "; extended ID " + extid)
