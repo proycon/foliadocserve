@@ -577,6 +577,11 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                             child['targets'] = [x.id for x in role.wrefs(recurse=False)]
                             child['scope'] = [x.id for x in role.wrefs(recurse=True)]
             layerparent = element.ancestor(folia.AbstractAnnotationLayer).ancestor(folia.AbstractStructureElement).id
+            try:
+                parentspan = element.ancestor(folia.AbstractSpanAnnotation)
+                annotations[extid]['parentspan'] = parentspan.id
+            except folia.NoSuchAnnotation:
+                annotations[extid]['parentspan'] = None
             annotations[extid]['layerparent'] = layerparent
             if auth:
                 if 'spanannotations' not in structure[layerparent]:
