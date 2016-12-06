@@ -425,6 +425,8 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
             structure[element.id] =  element.json(ignorelist=(folia.AbstractStructureElement,folia.AbstractAnnotationLayer, folia.Correction, folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
             if element.parent and element.parent.id:
                 structure[element.id]['parent'] = element.parent.id
+            if isinstance(element, (folia.Morpheme, folia.Phoneme)):
+                structure[element.id]['parentstructure'] = element.ancestor(folia.Word).id
             #structure[element.id]['targets'] = [ element.id ]
             #structure[element.id]['scope'] = [ element.id ]
             structure[element.id]['structure'] = subids
