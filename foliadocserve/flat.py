@@ -565,7 +565,8 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             annotations[extid]['scope'] = [ x.id for x in scope ]
             if auth:
                 for x in scope:
-                    structure[x.id]['annotations'].append(extid) #link structure to annotations
+                    if x.id in structure:
+                        structure[x.id]['annotations'].append(extid) #link structure to annotations
             annotations[extid]['annotations'] = [] #for nested span annotations (not higher order, those are in 'children')
             #get all spanroles
             if 'children' in annotations[extid]:
@@ -586,10 +587,11 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                 annotations[extid]['parentspan'] = None
             annotations[extid]['layerparent'] = layerparent
             if auth:
-                if 'spanannotations' not in structure[layerparent]:
-                    structure[layerparent]['spanannotations'] = [extid]
-                else:
-                    structure[layerparent]['spanannotations'].append(extid)
+                if layerparent in structure:
+                    if 'spanannotations' not in structure[layerparent]:
+                        structure[layerparent]['spanannotations'] = [extid]
+                    else:
+                        structure[layerparent]['spanannotations'].append(extid)
 
         if processed:
             if debug: log("(" + str(len(idlist)+1) + ") Successfully processed annotation " + element.XMLTAG + " in " + parentelement.XMLTAG + "; extended ID " + extid)
