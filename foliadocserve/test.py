@@ -226,8 +226,18 @@ def test(doc, testname, testmessage = ""):
                 testresult, testmessage = testequal(e.confidence, 0.88,  testmessage + "Testing confidence value", testresult)
         elif testname ==  "feature_edit":
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.11'].annotation(folia.PosAnnotation).feat('head'),"ADJX", testmessage + "Testing feature", testresult)
+        elif testname ==  "feature_edit2":
+            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.11'].annotation(folia.PosAnnotation).feat('headX'),"ADJX", testmessage + "Testing feature", testresult)
         elif testname ==  "feature_add":
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.11'].annotation(folia.PosAnnotation).feat('testsubset'),"testvalue", testmessage + "Testing feature", testresult)
+        elif testname ==  "feature_delete":
+            try:
+                doc['untitleddoc.p.3.s.1.w.11'].annotation(folia.PosAnnotation).feat('head')
+                testresult = False
+            except folia.NoSuchAnnotation:
+                pass
+            if testresult:
+                testresult, testmessage = testequal(testresult, True,  testmessage + "Testing absence of feature", testresult)
         else:
             testresult = False
             testmessage += "No such test: " + testname
