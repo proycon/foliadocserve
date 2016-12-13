@@ -224,6 +224,8 @@ def test(doc, testname, testmessage = ""):
                 testresult = False
             if testresult:
                 testresult, testmessage = testequal(e.confidence, 0.88,  testmessage + "Testing confidence value", testresult)
+        elif testname ==  "feature_edit":
+            testresult, testmessage = testequal(doc['untitleddoc.p.3.s.1.w.11'].annotation(folia.PosAnnotation).feat('head'),"ADJX", testmessage + "Testing feature", testresult)
         else:
             testresult = False
             testmessage += "No such test: " + testname
