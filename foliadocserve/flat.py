@@ -453,14 +453,28 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
     if debug: log("ERROR: Structure element expected, got " + str(type(element)))
     raise Exception("Structure element expected, got " + str(type(element)))
 
+
 def getannotations(doc, structure, annotations = None,debug=False,log=lambda s: print(s,file=sys.stderr)):
     if not annotations: annotations = {}
+    processed = set() #processed elements
     for id in structure:
-        getannotations_in(doc[id], structure, annotations, debug=debug,log=log)
+        e = doc[id]
+        processed.add(id)
+        getannotations_in(e, structure, annotations, debug=debug,log=log)
+        if isinstance(e, folia.Word) and e.parent:
+            p = e.parent
+            while p is not None:
+                if isinstance(p, folia.AbstractStructureElement) and p.id and p.id not in structure and p.id not in processed:
+                    processed.add(p.id)
+                    #do we have span annotations?
+                    if p.hasannotationlayer():
+                        #yes, process them
+                        getannotations_in(p, structure, annotations, debug=debug,log=log, spanonly=True)
+                p = p.parent
+
     return annotations
 
-
-def getannotations_in(parentelement, structure, annotations, incorrection=None, auth=True, debug=False,log=lambda s: print(s,file=sys.stderr),idprefix=None):
+def getannotations_in(parentelement, structure, annotations, incorrection=None, auth=True, debug=False,log=lambda s: print(s,file=sys.stderr),idprefix=None, spanonly=False):
     #Get annotations in the specified parentelement and add them to the annotations dictionary (passed as argument)
     #Structure dictionary is also passed and references for all found annotations are made
     idlist = []
@@ -477,6 +491,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
         log("Structural parent "  + structureelement.XMLTAG + " still lacks an ID and is absent in getstructure() result, generating ID...")
         generate_id(structureelement)
         structure[structureelement.id] = {'id':structureelement.id, 'type': structureelement.XMLTAG,'annotations':[]}
+
 
     for element in parentelement:
         #skip higher-order annotations; they are handled by their parents
@@ -517,14 +532,14 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
         if isinstance(element, folia.Correction):
             processed = True
             getannotations_correction(element,structure,annotations, auth=auth, log=log,debug=debug)
-            if auth:
+            if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
-        elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractTokenAnnotation, folia.String)):
+        elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractTokenAnnotation, folia.String)) and not spanonly:
             processed = True
             annotations[extid] = element.json()
             annotations[extid]['targets'] = [ structureelement.id ]
             annotations[extid]['scope'] = [ structureelement.id ]
-            if auth:
+            if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
             if isinstance(element,(folia.TextContent, folia.PhonContent)):
                 if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
