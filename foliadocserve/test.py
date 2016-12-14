@@ -245,6 +245,14 @@ def test(doc, testname, testmessage = ""):
             dependency = doc['untitleddoc.p.3.s.1.dependencies.1.dependency.10']
             testresult, testmessage = testequal(len(dependency), 1 , testmessage + "Testing only one child remains", testresult )
             testresult, testmessage = testequal(dependency[0].__class__, folia.DependencyDependent, testmessage + "Testing child is not the head", testresult )
+        elif testname ==  "dependency_add":
+            dependency = doc['untitleddoc.p.3.s.15.w.3']
+            l = list(doc['untitleddoc.p.3.s.15.w.3'].findspans(folia.Dependency))
+            testresult, testmessage = testequal(len(l), 2, testmessage + "Testing number of dependencies on targets word", testresult )
+            testresult, testmessage = testequal(l[0].cls, "obj1", testmessage + "Testing already existing dependency class", testresult )
+            testresult, testmessage = testequal(l[1].cls, "crd", testmessage + "Testing new dependency class", testresult )
+            testresult, testmessage = testequal(l[1].annotation(folia.Headspan).wrefs() , [doc['untitleddoc.p.3.s.15.w.3']], testmessage + "Testing headspan", testresult )
+            testresult, testmessage = testequal(l[1].annotation(folia.DependencyDependent).wrefs() , [doc['untitleddoc.p.3.s.15.w.1']], testmessage + "Testing dependent", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
