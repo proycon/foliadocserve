@@ -238,6 +238,9 @@ def test(doc, testname, testmessage = ""):
                 pass
             if testresult:
                 testresult, testmessage = testequal(testresult, True,  testmessage + "Testing absence of feature", testresult)
+        elif testname ==  "spanrole_respan":
+            dependency = doc['untitleddoc.p.3.s.1.dependencies.1.dependency.10']
+            testresult, testmessage = testequal(list(dependency.annotation(folia.Headspan).wrefs()), [ doc['untitleddoc.p.3.s.1.w.12'], doc['untitleddoc.p.3.s.1.w.12b'] ], testmessage + "Testing spanrole span", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname

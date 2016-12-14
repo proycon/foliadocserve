@@ -522,10 +522,10 @@
             </dep>
           </dependency>
           <dependency xml:id="untitleddoc.p.3.s.1.dependencies.1.dependency.10" class="mod">
-            <hd>
+            <hd xml:id="untitleddoc.p.3.s.1.dependencies.1.dependency.10.hd.1">
               <wref id="untitleddoc.p.3.s.1.w.12" t="janna"/>
             </hd>
-            <dep>
+            <dep xml:id="untitleddoc.p.3.s.1.dependencies.1.dependency.10.dep.1">
               <wref id="untitleddoc.p.3.s.1.w.11" t="snel"/>
             </dep>
           </dependency>

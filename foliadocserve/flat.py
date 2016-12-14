@@ -571,6 +571,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             for child in element.select(folia.AbstractSpanRole, ignore=(folia.Word,folia.Morpheme)):
                 if child.id is None:
                     child.id = element.generate_id(child)
+                    print("Generated ID " + child.id + " for " + str(repr(child)),file=sys.stderr)
                     child.doc.index[child.id] = child
 
             annotations[extid] = element.json(ignorelist=(folia.Word,folia.Morpheme,folia.Phoneme)) #don't descend into words (do descend for nested span annotations)
