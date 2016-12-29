@@ -608,7 +608,7 @@ class Root:
 
         if not format:
             if metachanges:
-                return "{}"
+                return "{'version':\"" + VERSION + "\"}"
             else:
                 raise cherrypy.HTTPError(404, "No queries given")
         if format.endswith('xml'):
@@ -780,7 +780,7 @@ class Root:
             raise cherrypy.HTTPError(404, "Expected X-sessionid " + namespace + "/" + docid)
 
         if namespace == "testflat":
-            return "{}" #no polling for testflat
+            return "{'version':\""+VERSION+"\"}" #no polling for testflat
 
         self.checkexpireconcurrency()
 
