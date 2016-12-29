@@ -255,6 +255,12 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(l[1].cls, "crd", testmessage + "Testing new dependency class", testresult )
             testresult, testmessage = testequal(l[1].annotation(folia.Headspan).wrefs() , [doc['untitleddoc.p.3.s.15.w.3']], testmessage + "Testing headspan", testresult )
             testresult, testmessage = testequal(l[1].annotation(folia.DependencyDependent).wrefs() , [doc['untitleddoc.p.3.s.15.w.1']], testmessage + "Testing dependent", testresult )
+        elif testname == "syntax_add":
+            dependency = doc['untitleddoc.p.3.s.15.w.1']
+            l = list(doc['untitleddoc.p.3.s.15.w.1'].findspans(folia.SyntacticUnit))
+            testresult, testmessage = testequal(len(l), 1, testmessage + "Testing number of syntactic units on targets word", testresult )
+            testresult, testmessage = testequal(l[0].cls, "s", testmessage + "Testing class", testresult )
+            testresult, testmessage = testequal(l[0].wrefs() , [doc['untitleddoc.p.3.s.15.w.1'],doc['untitleddoc.p.3.s.15.w.2'],doc['untitleddoc.p.3.s.15.w.3'],doc['untitleddoc.p.3.s.15.w.4'],doc['untitleddoc.p.3.s.15.w.5']], testmessage + "Testing span", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
