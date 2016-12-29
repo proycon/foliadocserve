@@ -93,7 +93,7 @@ def getslices(doc, Class, size=100):
 
 
 def parseresults(results, doc, **kwargs):
-    response = {}
+    response = {'version': kwargs['version']} #foliadocserve version
     if 'declarations' in kwargs and kwargs['declarations']:
         response['declarations'] = tuple(getdeclarations(doc))
     if 'setdefinitions' in kwargs and kwargs['setdefinitions']:

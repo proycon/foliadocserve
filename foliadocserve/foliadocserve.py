@@ -478,6 +478,7 @@ class Root:
         flatargs = getflatargs(cherrypy.request.params)
         flatargs['debug'] = self.debug
         flatargs['logfunction'] = log
+        flatargs['version'] = VERSION
 
         prevdocsel = None
         sessiondocsel = None
@@ -790,7 +791,7 @@ class Root:
                 cherrypy.log("Succesful poll from session " + sid + " for " + "/".join((namespace,docid)) + ", returning IDs: " + " ".join(ids))
                 doc = self.docstore[(namespace,docid)]
                 results = [ doc[id] for id in ids if id in doc ]
-                return parseresults(results, doc, **{'sid':sid, 'lastaccess': self.docstore.lastaccess[(namespace,docid)]})
+                return parseresults(results, doc, **{'version': VERSION, 'sid':sid, 'lastaccess': self.docstore.lastaccess[(namespace,docid)]})
             else:
                 return json.dumps({'sessions': len([s for s in self.docstore.lastaccess[(namespace,docid)] if s != 'NOSID' ])}).encode('utf-8')
         else:
