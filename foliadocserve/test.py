@@ -76,7 +76,7 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.12'].text(),"hoorden", testmessage + "Testing original word", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.16'].text(),"we", testmessage + "Testing new word", testresult)
             testresult, testmessage = testequal(doc['untitleddoc.p.3.s.13.w.16'].next().id,"untitleddoc.p.3.s.13.w.12", testmessage + "Testing order", testresult)
-        elif testname == "spanchange":
+        elif testname in ("spanchange","spanclasschange"):
             try:
                 e = next( doc['untitleddoc.p.3.s.9'].select(folia.Entity) )
                 testmessage = "Testing presence of new entity: Ok!\n"
@@ -88,6 +88,8 @@ def test(doc, testname, testmessage = ""):
                 testresult, testmessage = testequal(e.wrefs(0).id, 'untitleddoc.p.3.s.9.w.7' , testmessage + "Testing order (1/3)", testresult)
                 testresult, testmessage = testequal(e.wrefs(1).id, 'untitleddoc.p.3.s.9.w.8' , testmessage + "Testing order (2/3)", testresult)
                 testresult, testmessage = testequal(e.wrefs(2).id, 'untitleddoc.p.3.s.9.w.9' , testmessage + "Testing order (3/3)", testresult)
+            if testname == "spanclasschange":
+                testresult, testmessage = testequal(e.cls, "org", testmessage + "Testing class", testresult)
         elif testname in ( "newoverlapspan", "correction_newoverlapspan"):
             gen =  doc['untitleddoc.p.3.s.9'].select(folia.Entity)
             try:
