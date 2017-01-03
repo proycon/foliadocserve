@@ -626,7 +626,7 @@ class Root:
                 self.createsession(sessiondocsel[0],sessiondocsel[1],sid, results)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
-                raise "{} //multidoc response, not producing results"
+                raise "{'version':\""+VERSION +"\"} //multidoc response, not producing results"
             elif doc:
                 log("[Parsing results for FLAT]")
                 out =  parseresults(results, doc, **flatargs)
@@ -686,7 +686,7 @@ class Root:
             proc = subprocess.Popen("git log " + docid + ".folia.xml", stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,cwd=dir)
             outs, errs = proc.communicate()
             if errs: log("git log errors? " + errs.decode('utf-8'))
-            d = {'history':[]}
+            d = {'history':[], 'version': VERSION}
             count = 0
             for commit, date, msg in parsegitlog(outs.decode('utf-8')):
                 count += 1
@@ -695,7 +695,7 @@ class Root:
             log(str(count) + " revisions found - " + errs.decode('utf-8'))
             return json.dumps(d).encode('utf-8')
         else:
-            return json.dumps({'history': []}).encode('utf-8')
+            return json.dumps({'history': [], 'version': VERSION}).encode('utf-8')
 
     @cherrypy.expose
     def save(self, *args, message=""):
@@ -704,9 +704,9 @@ class Root:
         if (namespace,docid) in self.docstore:
             #self.bgtask.put( self.docstore.save, (namespace,docid), message)
             self.docstore.save( (namespace,docid), message)
-            return b"{'saved':1}"
+            return b"{'saved':1, 'version': \"" + VERSION.encode('utf-8')+ "\"}"
         else:
-            return b"{'saved':0}"
+            return b"{'saved':0, 'version': \"" + VERSION.encode('utf-8')+ "\"}"
 
 
     @cherrypy.expose
@@ -715,7 +715,7 @@ class Root:
             raise cherrypy.HTTPError(400, "Expected commithash")
 
         if not all([ x.isalnum() for x in commithash ]):
-            return b"{}"
+            return b"{'version': \"" + VERSION.encode('utf-8')+ "\"}"
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if self.docstore.git:
@@ -731,9 +731,9 @@ class Root:
             r = os.system("git checkout " + commithash + " " + self.docstore.getfilename(key) + " && git commit -m \"Reverting to commit " + commithash + "\"")
             if r != 0:
                 log("Error during git revert of " + self.docstore.getfilename(key))
-            return b"{}"
+            return b"{'version': \"" + VERSION.encode('utf-8')+ "\"}"
         else:
-            return b"{}"
+            return b"{'version': \"" + VERSION.encode('utf-8')+ "\"}"
 
 
 
@@ -867,7 +867,7 @@ class Root:
         namespace, docid = self.docselector(*args)
         log("Delete, namespace=" + namespace)
         self.docstore.delete((namespace,docid))
-        return "{}"
+        return "{'version':\""+VERSION+"\"}"
 
     @cherrypy.expose
     def copy(self, *args,**params):
@@ -875,17 +875,17 @@ class Root:
             key = self.docselector(*args)
             newkey = self.docselector(*params['target'].split('/'))
             self.docstore.copy(key,newkey)
-            return "{}"
+            return "{'version':\""+VERSION+"\"}"
         else:
             raise cherrypy.HTTPError(404, "No target specified")
 
     @cherrypy.expose
     def move(self, *args,**params):
-        if 'target' in params: 
+        if 'target' in params:
             key = self.docselector(*args)
             newkey = self.docselector(*params['target'].split('/'))
             self.docstore.move(key,newkey)
-            return "{}"
+            return "{'version':\""+VERSION+"\"}"
         else:
             raise cherrypy.HTTPError(404, "No target specified")
 
