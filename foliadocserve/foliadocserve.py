@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.5"
+VERSION = "0.5.1"
 
 logfile = None
 def log(msg):
@@ -834,7 +834,7 @@ class Root:
     def upload(self, *namespaceargs):
         namespace = validatenamespace('/'.join(namespaceargs))
         log("In upload, namespace=" + namespace)
-        response = {}
+        response = {'version':VERSION}
         cl = cherrypy.request.headers['Content-Length']
         data = cherrypy.request.body.read(int(cl))
         cherrypy.response.headers['Content-Type'] = 'application/json'
