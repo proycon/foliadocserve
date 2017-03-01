@@ -779,6 +779,9 @@ class Root:
         else:
             raise cherrypy.HTTPError(404, "Expected X-sessionid " + namespace + "/" + docid)
 
+        #set last access
+        self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
+
         if namespace == "testflat":
             return "{'version':\""+VERSION+"\"}" #no polling for testflat
 
