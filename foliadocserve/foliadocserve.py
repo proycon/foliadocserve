@@ -273,6 +273,8 @@ class DocStore:
             log("Unloading " + "/".join(key))
             del self.data[key]
             del self.lastaccess[key]
+            if key in updateq:
+                del self.updateq[key]
             if key in self.changelog:
                 del self.changelog[key]
             self.done(key)
@@ -372,11 +374,15 @@ class DocStore:
         unload = []
         for d in self.lastaccess:
             if d not in unload:
+                dounload = True #falsify: all sessions must be expired before we can actually unload the document
                 for sid, t in self.lastaccess[d].items():
                     expirecheck = time.time() - t
-                    if expirecheck > self.expiretime:
-                        log("Triggering unload for " + "/".join(d) + " [" + str(expirecheck) + "s / " + sid + "]")
-                        unload.append(d)
+                    if expirecheck < self.expiretime:
+                        dounload = False
+
+                if dounload:
+                    log("Triggering unload for " + "/".join(d) + " [" + str(expirecheck) + "s / " + sid + "]")
+                    unload.append(d)
 
         if unload:
             for key in unload:
@@ -431,7 +437,7 @@ class Root:
                 if othersid != sid:
                     for result in results:
                         if result.id:
-                            self.docstore.updateq[(namespace,docid)][othersid].add(result.id)
+                            self.docstore.updateq[(namespace,docid)][sid].add(result.id)
 
     def addtochangelog(self, doc, query, docselector):
         if self.docstore.git:
@@ -739,7 +745,7 @@ class Root:
 
 
     def checkexpireconcurrency(self):
-        #Delete concurrency information for sessions that fail to poll within the expiration time (they almost certainly closed the page/browser)
+        """Delete concurrency information for sessions that fail to poll within the expiration time (they almost certainly closed the page/browser)"""
         deletelist = []
         for d in self.docstore.lastaccess:
             for sid in self.docstore.updateq[d]:
