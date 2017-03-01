@@ -106,9 +106,11 @@ def parseresults(results, doc, **kwargs):
         response['textclasses'] = list(doc.textclasses)
     if 'slices' in kwargs and kwargs['slices']:
         response['slices'] = {}
+        response['slicesize'] = {}
         for tag, size in kwargs['slices']:
             Class = folia.XML2CLASS[tag]
             response['slices'][tag] = list(getslices(doc, Class, size))
+            response['slicesize'][tag] = size
     if 'debug' in kwargs and kwargs['debug']:
         debug = True
     else:
