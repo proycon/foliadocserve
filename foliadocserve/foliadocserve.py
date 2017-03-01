@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.5.2"
+VERSION = "0.6.0"
 
 logfile = None
 def log(msg):
@@ -372,12 +372,13 @@ class DocStore:
         unload = []
         for d in self.lastaccess:
             if d not in unload:
-                for _, t in self.lastaccess[d].items():
-                    if time.time() - t > self.expiretime:
+                for sid, t in self.lastaccess[d].items():
+                    expirecheck = time.time() - t
+                    if expirecheck > self.expiretime:
+                        log("Triggering unload for " + "/".join(d) + " [" + str(expirecheck) + "s / " + sid + "]")
                         unload.append(d)
 
         if unload:
-            log("Unloading: " + str(len(unload)))
             for key in unload:
                 self.unload(key, save)
 
@@ -421,7 +422,7 @@ class Root:
 
     def createsession(self,namespace,docid, sid=None, results=None):
         """Create or update a session"""
-        if sid[-5:] != 'NOSID':
+        if sid != 'NOSID':
             log("Creating session " + sid + " for " + "/".join((namespace,docid)))
             self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
             # v-- will create it if it does not exist yet, does nothing otherwise, other sessions will write here what we need to update
@@ -459,8 +460,8 @@ class Root:
     def query(self, **kwargs):
         """Query method, all FQL queries arrive here"""
 
-        if 'X-sessionid' in cherrypy.request.headers:
-            sid = cherrypy.request.headers['X-sessionid']
+        if 'X-Sessionid' in cherrypy.request.headers:
+            sid = cherrypy.request.headers['X-Sessionid']
         else:
             sid = 'NOSID'
 
@@ -472,7 +473,7 @@ class Root:
 
         if self.debug:
             for i,rawquery in enumerate(rawqueries):
-                log("[QUERY INCOMING #" + str(i+1) + "] " + rawquery)
+                log("[QUERY INCOMING #" + str(i+1) + ", SID=" +sid + "] " + rawquery)
 
         #Get parameters for FLAT-specific return format
         flatargs = getflatargs(cherrypy.request.params)
@@ -622,7 +623,7 @@ class Root:
         elif format == "json":
             out = "[" + ",".join(results) + "]"
         elif format == "flat":
-            if sid != 'NOSID' and sessiondocsel and not multidoc:
+            if sid != 'NOSID' and sessiondocsel:
                 self.createsession(sessiondocsel[0],sessiondocsel[1],sid, results)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
@@ -774,12 +775,13 @@ class Root:
     def poll(self, *args):
         namespace, docid = self.docselector(*args)
 
-        if 'X-sessionid' in cherrypy.request.headers:
-            sid = cherrypy.request.headers['X-sessionid']
+        if 'X-Sessionid' in cherrypy.request.headers:
+            sid = cherrypy.request.headers['X-Sessionid']
         else:
-            raise cherrypy.HTTPError(404, "Expected X-sessionid " + namespace + "/" + docid)
+            raise cherrypy.HTTPError(404, "Expected X-Sessionid " + namespace + "/" + docid)
 
         #set last access
+        log("Poll from session " + sid + " for " + "/".join((namespace,docid)))
         self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
 
         if namespace == "testflat":
