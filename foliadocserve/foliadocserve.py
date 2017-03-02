@@ -587,7 +587,7 @@ class Root:
                         multidoc = True
                     result =  query(doc,False,self.debug >= 2)
                     results.append(result) #False = nowrap
-                    if query.action and query.action.action in ('EDIT','ADD','SUBSTITUTE','PREPEND','APPEND'):
+                    if query.action and query.action.action in ('EDIT','ADD','DELETE', 'SUBSTITUTE','PREPEND','APPEND'):
                         #results of edits should be transferred to other open sessions
                         xresults.append(result)
                     if self.debug:
