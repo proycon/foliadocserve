@@ -754,20 +754,21 @@ class Root:
         """Delete concurrency information for sessions that fail to poll within the expiration time (they almost certainly closed the page/browser)"""
         deletelist = []
         for d in self.docstore.lastaccess:
-            for sid in self.docstore.updateq[d]:
-                if sid in self.docstore.lastaccess[d]:
-                    lastaccess = self.docstore.lastaccess[d][sid]
-                    if time.time() - lastaccess > self.docstore.expiretime:
-                        deletelist.append( (d,sid) )
+            for sid in self.docstore.lastaccess[d]:
+                lastaccess = self.docstore.lastaccess[d][sid]
+                if time.time() - lastaccess > self.docstore.expiretime:
+                    deletelist.append( (d,sid) )
         for d,sid in deletelist:
             if sid != 'NOSID':
                 log("Expiring session " + sid + " for " + "/".join(d))
                 del self.docstore.lastaccess[d][sid]
-                del self.docstore.updateq[d][sid]
+                if d in self.docstore.updateq:
+                    if sid in self.docstore.updateq[d]:
+                        del self.docstore.updateq[d][sid]
+                    if len(self.docstore.updateq[d]) == 0:
+                        del self.docstore.updateq[d]
                 if len(self.docstore.lastaccess[d]) == 0:
                     del self.docstore.lastaccess[d]
-                if len(self.docstore.updateq[d]) == 0:
-                    del self.docstore.updateq[d]
 
 
     def docselector(self, *args):
