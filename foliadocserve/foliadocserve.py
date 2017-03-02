@@ -426,18 +426,20 @@ class Root:
         self.workdir = args.workdir
         self.debug = args.debug
 
-    def createsession(self,namespace,docid, sid=None, results=None):
+    def setsession(self,namespace,docid, sid=None, results=None):
         """Create or update a session"""
         if sid != 'NOSID':
             log("Creating session " + sid + " for " + "/".join((namespace,docid)))
             self.docstore.lastaccess[(namespace,docid)][sid] = time.time()
             # v-- will create it if it does not exist yet, does nothing otherwise, other sessions will write here what we need to update
             self.docstore.updateq[(namespace,docid)][sid] #pylint: disable=pointless-statement
+            #update the queue for other sessions with the results we just obtained for this one
             for othersid in self.docstore.updateq[(namespace,docid)]:
                 if othersid != sid:
-                    for result in results:
-                        if result.id:
-                            self.docstore.updateq[(namespace,docid)][sid].add(result.id)
+                    for queryresults in results:
+                        for result in queryresults:
+                            if result.id:
+                                self.docstore.updateq[(namespace,docid)][othersid].add(result.id)
 
     def addtochangelog(self, doc, query, docselector):
         if self.docstore.git:
@@ -569,7 +571,8 @@ class Root:
                 raise cherrypy.HTTPError(404, "Unable to edit metadata on document with non-native metadata type (" + "/".join(docsel)+")")
 
 
-        results = []
+        results = [] #stores all results
+        xresults = [] #stores results that should be transferred to other sessions as well, i.e. results of adds/edits
         doc = None
         prevdocid = None
         multidoc = False #are the queries over multiple distinct documents?
@@ -584,6 +587,9 @@ class Root:
                         multidoc = True
                     result =  query(doc,False,self.debug >= 2)
                     results.append(result) #False = nowrap
+                    if query.action and query.action.action in ('EDIT','ADD','SUBSTITUTE','PREPEND','APPEND'):
+                        #results of edits should be transferred to other open sessions
+                        xresults.append(result)
                     if self.debug:
                         log("[QUERY RESULT] " + repr(result))
                     format = query.format
@@ -630,7 +636,7 @@ class Root:
             out = "[" + ",".join(results) + "]"
         elif format == "flat":
             if sid != 'NOSID' and sessiondocsel:
-                self.createsession(sessiondocsel[0],sessiondocsel[1],sid, results)
+                self.setsession(sessiondocsel[0],sessiondocsel[1],sid, xresults)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
                 raise "{'version':\""+VERSION +"\"} //multidoc response, not producing results"
