@@ -273,7 +273,7 @@ class DocStore:
             log("Unloading " + "/".join(key))
             del self.data[key]
             del self.lastaccess[key]
-            if key in updateq:
+            if key in self.updateq:
                 del self.updateq[key]
             if key in self.changelog:
                 del self.changelog[key]
