@@ -436,7 +436,7 @@ class Root:
             #update the queue for other sessions with the results we just obtained for this one
             for othersid in self.docstore.updateq[(namespace,docid)]:
                 if othersid != sid:
-                    for queryresults in results:
+                    for queryresults in results: #results are grouped per query, we don't care about that here though
                         for result in queryresults:
                             if result.id:
                                 self.docstore.updateq[(namespace,docid)][othersid].add(result.id)
@@ -805,9 +805,9 @@ class Root:
             ids = self.docstore.updateq[(namespace,docid)][sid]
             self.docstore.updateq[(namespace,docid)][sid] = set() #reset
             if ids:
-                cherrypy.log("Succesful poll from session " + sid + " for " + "/".join((namespace,docid)) + ", returning IDs: " + " ".join(ids))
+                cherrypy.log("Successful poll from session " + sid + " for " + "/".join((namespace,docid)) + ", returning IDs: " + " ".join(ids))
                 doc = self.docstore[(namespace,docid)]
-                results = [ doc[id] for id in ids if id in doc ]
+                results = [[ doc[id] for id in ids if id in doc ]] #results are grouped by query, but we lose that distinction here and group them all in one, hence the double list
                 return parseresults(results, doc, **{'version': VERSION, 'sid':sid, 'lastaccess': self.docstore.lastaccess[(namespace,docid)]})
             else:
                 return json.dumps({'sessions': len([s for s in self.docstore.lastaccess[(namespace,docid)] if s != 'NOSID' ])}).encode('utf-8')
