@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 
 logfile = None
 def log(msg):
@@ -925,6 +925,8 @@ def main():
     cherrypy.config.update({
         'server.socket_host': args.host,
         'server.socket_port': args.port,
+        'server.max_request_body_size' : 1024*1024*1024, #max 1GB upload (that is a lot!)
+        'server.socket_timeout': 30, #30s instead of default 10s
         'request.show_tracebacks':False,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
