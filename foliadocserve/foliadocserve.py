@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 
 logfile = None
 def log(msg):
@@ -238,6 +238,10 @@ class DocStore:
         elif hasattr(doc,'changed') and doc.changed:
             self.use(key)
             log("Saving " + self.getfilename(key) + " - " + message)
+            dirname = os.path.dirname(self.getfilename(key))
+            if not os.path.exists(dirname):
+                log("Directory does not exist yet, creating on the fly: " + dirname)
+                os.makedirs(dirname)
             doc.save(self.getfilename(key) + '.tmp')
             os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
             if self.git:
