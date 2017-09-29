@@ -38,6 +38,7 @@ from jinja2 import Environment, FileSystemLoader
 from pynlpl.formats import folia, fql, cql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
+from foliatools.foliatextcontent import cleanredundancy
 
 syspath = os.path.dirname(os.path.realpath(__file__))
 env = Environment(loader=FileSystemLoader(syspath + '/templates'))
@@ -81,6 +82,15 @@ def parsegitlog(data):
 
 
 
+def cleantextredundancy(element):
+    if not isinstance(element, folia.AbstractSpanAnnotation): #prevent infinite recursion
+        for e in element:
+            if isinstance(e, folia.AbstractElement):
+                cleantextredundancy(e)
+        if element.PRINTABLE:
+            if isinstance(element,folia.AbstractStructureElement:
+                for cls in element.doc.textclasses:
+                    cleanredundancy(element, cls)
 
 class BackgroundTaskQueue(cherrypy.process.plugins.SimplePlugin):
     """For background tasks that need not tie-up the request process"""
@@ -429,6 +439,7 @@ class Root:
         self.bgtask = bgtask
         self.workdir = args.workdir
         self.debug = args.debug
+        self.allowtextredundancy = args.allowtextredundancy
 
     def setsession(self,namespace,docid, sid=None, results=None):
         """Create or update a session"""
@@ -864,6 +875,9 @@ class Root:
         try:
             log("Loading document from upload")
             doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True)
+            if not self.allowtextredundancy:
+                for e in data:
+                    cleantextredundancy(e)
             doc.changed = True
             response['docid'] = doc.id
             self.docstore[(namespace,doc.id)] = doc
@@ -919,6 +933,7 @@ def main():
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
     parser.add_argument('-l','--logfile', type=str,help="Log file", action='store',default="foliadocserve.log",required=False)
     parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
+    parser.add_argument('--allowtextredundancy',help="Allow text redundancy (will be stripped from documents otherwise)", action='store_true',default=False)
     parser.add_argument('--git',help="Enable versioning control using git (separate git repositories will be automatically created for each namespace, OR you can make one global one in the workdir manually)", action='store_true',default=False)
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
