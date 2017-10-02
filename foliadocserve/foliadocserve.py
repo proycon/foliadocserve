@@ -88,7 +88,7 @@ def cleantextredundancy(element):
             if isinstance(e, folia.AbstractElement):
                 cleantextredundancy(e)
         if element.PRINTABLE:
-            if isinstance(element,folia.AbstractStructureElement:
+            if isinstance(element,folia.AbstractStructureElement):
                 for cls in element.doc.textclasses:
                     cleanredundancy(element, cls)
 
