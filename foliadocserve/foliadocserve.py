@@ -168,7 +168,6 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
     def run(self):
         while self.running:
-            print("tick, ", len(self.docstore),file=sys.stderr)
             self.docstore.autounload()
             time.sleep(self.interval)
 
@@ -931,7 +930,7 @@ def main():
     parser = argparse.ArgumentParser(description="FoLiA Document Server - Allows querying and manipulating FoLiA documents. Do not serve publicly in production use!", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d','--workdir', type=str,help="Work directory", action='store',required=True)
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
-    parser.add_argument('-l','--logfile', type=str,help="Log file", action='store',default="foliadocserve.log",required=False)
+    parser.add_argument('-l','--logfile', type=str,help="Log file prefix", action='store',default="foliadocserve",required=False)
     parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
     parser.add_argument('--allowtextredundancy',help="Allow text redundancy (will be stripped from documents otherwise)", action='store_true',default=False)
     parser.add_argument('--git',help="Enable versioning control using git (separate git repositories will be automatically created for each namespace, OR you can make one global one in the workdir manually)", action='store_true',default=False)
@@ -939,7 +938,7 @@ def main():
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
-    logfile = open(args.logfile,'w',encoding='utf-8')
+    logfile = open(args.logfile+'.folia.log','w',encoding='utf-8')
     os.chdir(args.workdir)
     cherrypy.config.update({
         'server.socket_host': args.host,
@@ -947,6 +946,9 @@ def main():
         'server.max_request_body_size' : 1024*1024*1024, #max 1GB upload (that is a lot!)
         'server.socket_timeout': 30, #30s instead of default 10s
         'request.show_tracebacks':False,
+        'log.screen': True,
+        'log.access_file': args.logfile + '.acccess.log',
+        'log.error_file': args.logfile + '.error.log'
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
     docstore = DocStore(args.workdir, args.expirationtime, args.git, args.debug)
