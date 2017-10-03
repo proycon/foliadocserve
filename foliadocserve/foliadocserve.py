@@ -875,7 +875,7 @@ class Root:
             log("Loading document from upload")
             doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True)
             if not self.allowtextredundancy:
-                for e in data:
+                for e in doc.data:
                     cleantextredundancy(e)
             doc.changed = True
             response['docid'] = doc.id
