@@ -23,7 +23,7 @@ Architecture
 
 The FoLiA Document Server consists of a document store that groups documents
 into namespaces, a namespace can correspond for instance to a user ID or a
-project. 
+project.
 
 Documents are automatically loaded and unloaded as they are requested and
 expire. Loaded documents are kept in memory fully to facilitate rapid access
@@ -39,7 +39,7 @@ Features:
 
 * webservice
 * queries using FQL,  or alternatively CQL (limited)
-* multiple return formats (FoLiA XML, JSON, FLAT) 
+* multiple return formats (FoLiA XML, JSON, FLAT)
 * versioning control support using git
 * full support for corrections, alternatives!
 * support for concurrency
@@ -99,7 +99,7 @@ Querying & Annotating
 
 These URLs will return HTTP 200 OK, with data in the format as requested in the FQL
 query if the query is succesful. If the query contains an error, an HTTP 404 response
-will be returned. 
+will be returned.
 
 -------------
 Versioning
@@ -144,8 +144,8 @@ Global variables
 -------------------
 
 * ``SET <variable>=<value>`` - Sets global variables that apply to all statements that follow. String values need to be in double quotes. Available variables are:
-* **annotator** - The name of the annotator 
-* **annotatortype** - The type of the annotator, can be *auto* or *manual* 
+* **annotator** - The name of the annotator
+* **annotatortype** - The type of the annotator, can be *auto* or *manual*
 
 Usually your queries on a particular annotation type are limited to one
 specific set. To prevent having to enter the set explicitly in your queries,
@@ -163,7 +163,7 @@ Document Selection
 FQL statements for the document server start with a document selector, represented by the
 keyword **USE**::
 
- USE <namespace>/<docid> 
+ USE <namespace>/<docid>
 
 This selects what document to apply the query to, the document will be
 automatically loaded and unloaded by the server as it sees fit. It can be
@@ -173,7 +173,7 @@ all subsequent queries.
 Alternatively, the **LOAD** statement loads an arbitrary file from disk, but its use
 is restricted to the command line ``foliaquery`` tool rather than this document server::
 
- LOAD <filename> 
+ LOAD <filename>
 
 If you're interested in retrieving the full document rather than doing specific querying, use
 ``GET`` statement immediately after a ``USE`` or ``LOAD`` expression.
@@ -277,7 +277,7 @@ More on this in a later section.
 The following FQL query shows how to get the part of speech tag for a
 word::
 
- SELECT pos FOR ID mydocument.word.3 
+ SELECT pos FOR ID mydocument.word.3
 
 Or for all words::
 
@@ -317,7 +317,7 @@ that the target is a span (to do multiple spans at once, repeat the SPAN
 keyword again), the operator ``&`` is used for consecutive spans, whereas ``,``
 is used for disjoint spans::
 
- ADD entity WITH class "person" FOR SPAN ID mydocument.word.3 & ID myword.document.word.25 
+ ADD entity WITH class "person" FOR SPAN ID mydocument.word.3 & ID myword.document.word.25
 
 This works with filters too, the ``&`` operator enforced a single consecutive span::
 
@@ -325,7 +325,7 @@ This works with filters too, the ``&`` operator enforced a single consecutive sp
 
 Remember we can do multiple at once::
 
- ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe" 
+ ADD entity WITH class "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe"
  SPAN w WHERE text = "Jane" & w WHERE text = "Doe"
 
 The **HAS** keyword enables you to descend down in the document tree to
@@ -333,7 +333,7 @@ siblings.  Consider the following example that changes the part of speech tag
 to "verb", for all occurrences of words that have lemma "fly". The parentheses
 are mandatory for a **HAS** statement::
 
- EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly") 
+ EDIT pos OF "someposset" WITH class = "v" FOR w WHERE (lemma OF "somelemmaset" HAS class "fly")
 
 Target expressions can be former with either **FOR** or with **IN**, the
 difference is that **IN** is much stricter, the element has to be a direct
@@ -360,7 +360,7 @@ Though explicitly specified here, IDs will be automatically generated when neces
 The **ADD** action has two cousins: **APPEND** and **PREPEND**.
 Instead of adding something in the scope of the target expression, they either append
 or prepend an element, so the inserted element will be a sibling::
- 
+
  APPEND w (ADD t WITH text "house") FOR w WHERE text = "the"
 
 This above query appends/inserts the word "house" after every definite article.
@@ -375,7 +375,7 @@ section we look at text content, which in FoLiA is an annotation element too
 
 Here we change the text of a word::
 
- EDIT t WITH text = "house" FOR ID mydoc.word.45 
+ EDIT t WITH text = "house" FOR ID mydoc.word.45
 
 Here we edit or add (recall that EDIT falls back to ADD when not found and
 there is no further selector) a lemma and check on text content::
@@ -427,7 +427,7 @@ keyword.
 The return type can be set using the **FORMAT** statement:
 
 * **FORMAT xml** - Returns FoLiA XML, the response is contained in a simple
-   ``<results><result/></results>`` structure. 
+   ``<results><result/></results>`` structure.
 * **FORMAT single-xml** - Like above, but returns pure unwrapped FoLiA XML and
    therefore only works if the response only contains one element. An error
    will be raised otherwise.
@@ -435,11 +435,11 @@ The return type can be set using the **FORMAT** statement:
 * **FORMAT single-json** - Like above, but returns a single element rather than
   a list. An error will be raised if the response contains multiple.
 * **FORMAT python** - Returns a Python object, can only be used when
-  directly querying the FQL library without the document server 
+  directly querying the FQL library without the document server
 * **FORMAT flat** -  Returns a parsed format optimised for FLAT. This is a JSON reply
    containing an HTML skeleton of structure elements (key html), parsed annotations
    (key annotations). If the query returns a full FoLiA document, then the JSON object will include parsed set definitions, (key
-   setdefinitions), and declarations.  
+   setdefinitions), and declarations.
 
 The **RETURN** statement may be used standalone or appended to a query, in
 which case it applies to all subsequent queries. The same applies to the
@@ -460,7 +460,7 @@ to all subsequent queries::
 Two special uses of request are ``REQUEST ALL`` (default) and ``REQUEST
 NOTHING``, the latter may be useful in combination with **ADD**, **EDIT** and
 **DELETE**, by default it will return the updated state of the document.
- 
+
 Note that if you set REQUEST wrong you may quickly end up with empty results.
 
 ---------------------
@@ -474,7 +474,7 @@ access them right from the elements they apply to.
 
 The following query selects all named entities (of an actual rather than a
 fictitious set for a change) of people that have the name John::
- 
+
  SELECT entity OF "https://github.com/proycon/folia/blob/master/setdefinitions/namedentities.foliaset.xml"
  WHERE class = "person" FOR w WHERE text = "John"
 
@@ -493,7 +493,7 @@ We can use that construct to select all people named John Doe for instance::
  SELECT entity WHERE class = "person" FOR SPAN w WHERE text = "John" & w WHERE text = "Doe"
 
 
- 
+
 Span annotations like syntactic units are typically nested trees, a tree query
 such as "//pp/np/adj" can be represented as follows. Recall that the **IN**
 statement starts a target expression like **FOR**, but is stricter on the
@@ -501,10 +501,10 @@ hierarchy, which is what we would want here::
 
  SELECT su WHERE class = "adj" IN su WHERE class = "np" IN su WHERE class = "pp"
 
-In such instances we may be most interested in obtaining the full PP:: 
+In such instances we may be most interested in obtaining the full PP::
 
  SELECT su WHERE class = "adj" IN su WHERE class = "np" IN su WHERE class = "pp" RETURN outer-target
- 
+
 
 The **EDIT** action is not limited to editing attributes, sometimes you
 want to alter the element of a span. A separate **RESPAN** keyword (without
@@ -538,13 +538,13 @@ correct erroneous tagger output::
 
 Now we do the same but as an explicit correction::
 
- EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class "wrongpos") 
+ EDIT pos WITH class "v" WHERE class = "n" (AS CORRECTION OF "some/correctionset" WITH class "wrongpos")
  FOR w WHERE text = "fly"
 
 Another example in a spelling correction context, we correct the misspelling
 *concous* to *conscious**::
 
- EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class "spellingerror") 
+ EDIT t WITH text "conscious" (AS CORRECTION OF "some/correctionset" WITH class "spellingerror")
  FOR w WHERE text = "concous"
 
 The **AS CORRECTION** keyword (always in a separate block within parentheses) is used to
@@ -557,7 +557,7 @@ Alternatives are simpler, but follow the same principle::
 
 Confidence scores are often associationed with alternatives::
 
- EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6) 
+ EDIT pos WITH class "v" WHERE class = "n" (AS ALTERNATIVE WITH confidence 0.6)
  FOR w WHERE text = "fly"
 
 The **AS** clause is also used to select alternatives rather than the
@@ -569,7 +569,7 @@ text "fly"::
 If you want the authoritative tag as well, you can chain the actions. The
 same target expression (FOR..) always applies to all chained actions, but the AS clause
 applies only to the action in the scope of which it appears::
- 
+
  SELECT pos SELECT pos (AS ALTERNATIVE) FOR w WHERE text = "fly"
 
 Filters on the alternative themselves may be applied as expected using the WHERE clause::
@@ -608,11 +608,11 @@ by using the **SUGGESTION** keyword::
 Note that **AS CORRECTION** may take the **OF** keyword to
 specify the correction set, they may also take a **WHERE** clause to filter::
 
- SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible") FOR w 
+ SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible") FOR w
 
 The **SUGGESTION** keyword can take a WHERE filter too::
 
- SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible" SUGGESTION WHERE confidence > 0.5) FOR w 
+ SELECT t (AS CORRECTION OF "some/correctionset" WHERE class = "confusible" SUGGESTION WHERE confidence > 0.5) FOR w
 
 To add a suggestion for correction rather than an actual authoritative
 correction, you can do::
@@ -638,8 +638,8 @@ The **SUGGESTION** keyword can be chaineed to add multiple suggestions at once::
 
 Another example in a spelling correction context::
 
- EDIT t (AS CORRECTION OF "some/correctionset" WITH class "spellingerror" 
- SUGGESTION text "conscious" WITH confidence 0.8 SUGGESTION text "couscous" WITH confidence 0.2) 
+ EDIT t (AS CORRECTION OF "some/correctionset" WITH class "spellingerror"
+ SUGGESTION text "conscious" WITH confidence 0.8 SUGGESTION text "couscous" WITH confidence 0.2)
  FOR w WHERE text = "concous"
 
 A similar construction is available for alternatives as well. First we
@@ -657,18 +657,18 @@ When a correction is made on an element, all annotations below it (recursively) 
 intact, i.e. they are copied from the original element to the new correct element. The
 same applies to suggestions.  Moreover, all references to the original element,
 from for instance span annotation elements, will be made into references to the
-new corrected elements. 
+new corrected elements.
 
 This is not always what you want, if you want the correction not to have any
 annotations inherited from the original, simply use **AS BARE CORRECTION** instead of **AS
-CORRECTION**. 
+CORRECTION**.
 
-You can also use **AS CORRECTION** with **ADD** and **DELETE**. 
+You can also use **AS CORRECTION** with **ADD** and **DELETE**.
 
 
 The most complex kind of corrections are splits and merges. A split separates a
 structure element such as a word into multiple, a merge unifies multiple
-structure elements into one. 
+structure elements into one.
 
 In FQL, this is achieved through substitution, using the action **SUBSTITUTE**::
 
@@ -689,13 +689,13 @@ You may have noticed that the merge and split examples were not corrections in
 the FoLiA-sense; the originals are removed and not preserved. Let's make it
 into proper corrections::
 
- SUBSTITUTE w WITH text "together" 
- (AS CORRECTION OF "some/correctionset" WITH class "spliterror") 
+ SUBSTITUTE w WITH text "together"
+ (AS CORRECTION OF "some/correctionset" WITH class "spliterror")
  FOR SPAN w WHERE text="to" & w WHERE text="gether"
 
 And a split::
 
- SUBSTITUTE w WITH text "each" SUBSTITUTE w WITH text "other" 
+ SUBSTITUTE w WITH text "each" SUBSTITUTE w WITH text "other"
  (AS CORRECTION OF "some/correctionset" WITH class "runonerror")
  FOR w WHERE text="eachother"
 
@@ -708,7 +708,7 @@ of substitute statements has to be enclosed in parentheses::
 
 (Alternatively, you can use **ADD** instead of **SUBSTITUTE** after the **SUGGESTION** clause, which behaves identically)
 
-In FoLiA, suggestions for deletion are simply empty suggestions, and they are made using the **DELETION** keyword:
+In FoLiA, suggestions for deletion are simply empty suggestions, and they are made using the **DELETION** keyword::
 
  SUBSTITUTE (AS CORRECTION OF "some/correctionset" WITH class "redundantword" SUGGESTION DELETION )
  FOR w WHERE text="something"
@@ -717,7 +717,7 @@ Suggestions may indicate they modify the parent structure when applied. For
 instance, a suggestion for removal of a redundant period is often also a
 suggestion that the sentence should be merged. This is explicitly indicated in
 FoLiA with a ``merge`` attribute on the suggestion, and in FQL with the
-**MERGE** keyword immediately following **SUGGESTION**. An example:
+**MERGE** keyword immediately following **SUGGESTION**. An example::
 
  SUBSTITUTE (AS CORRECTION OF "some/correctionset" WITH class "redundantpunctuation" SUGGESTION MERGE DELETION )
  FOR w WHERE text="."
@@ -725,10 +725,15 @@ FoLiA with a ``merge`` attribute on the suggestion, and in FQL with the
 The reverse situation would be insertion of a missing period, which is
 generally also a suggestion to split the parent sentence. For this we use the
 **SPLIT** keyword. Insertions are typically done using the **APPEND** or
-**PREPEND** actions, as there is nothing to substitute:
+**PREPEND** actions, as there is nothing to substitute::
 
  APPEND (AS CORRECTION OF "some/correctionset" WITH class "missingpunctuation" SUGGESTION SPLIT (ADD w WITH text ".") )
  FOR w WHERE text="end"
+
+last, but not least, when deleting corrections explicitly, you may use the **RESTORE** keyword to restore the original.
+Example::
+
+ DELETE correction ID "some.correction" RESTORE ORIGINAL
 
 -------------------------------
 I can haz context plz?
@@ -738,7 +743,7 @@ We've seen that with the **FOR** keyword we can move to bigger elements in the F
 document, and with the **HAS** keyword we can move to siblings. There are
 several *context keywords* that give us all the tools we need to peek at the
 context. Like **HAS** expressions, these need always be enclosed in
-parentheses. 
+parentheses.
 
 For instance, consider part-of-speech tagging scenario. If we have a word where
 the left neighbour is a determiner, and the right neighbour a noun, we can be
@@ -779,11 +784,11 @@ only as a first step to build an actual search index.
 Other modifiers are PARENT and and ANCESTOR. PARENT will at most go one element
 up, whereas ANCESTOR will go on to the largest element::
 
- SELECT lemma FOR w WHERE (PARENT s WHERE  text CONTAINS "wine") 
+ SELECT lemma FOR w WHERE (PARENT s WHERE  text CONTAINS "wine")
 
 Instead of **PARENT**, the use of a nested **FOR** is preferred and more efficient::
 
- SELECT lemma FOR w FOR s WHERE text CONTAINS "wine" 
+ SELECT lemma FOR w FOR s WHERE text CONTAINS "wine"
 
 Let's revisit syntax trees for a bit now we know how to obtain context. Imagine
 we want an NP to the left of a PP::
@@ -827,7 +832,7 @@ Shortcuts
 -------------------------------
 
 Classes are prevalent all throughout FoLiA, it is very common to want to select
-on classes. To select words with pos tag "n" for example you can do:: 
+on classes. To select words with pos tag "n" for example you can do::
 
  SELECT w WHERE (pos HAS class = "n")
 
