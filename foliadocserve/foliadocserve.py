@@ -49,7 +49,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.3"
+VERSION = "0.6.4"
 
 logfile = None
 def log(msg):
@@ -173,7 +173,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
 
 class DocStore:
-    def __init__(self, workdir, expiretime, git=False, debug=False):
+    def __init__(self, workdir, expiretime, git=False, gitmode="user", gitshare=True, debug=False):
         log("Initialising document store in " + workdir)
         self.workdir = workdir
         self.expiretime = expiretime
@@ -185,6 +185,8 @@ class DocStore:
         self.lock = set() #will contain (namespace,docid) of temporarily locked documents, loading/unloading/saving are blocking operations
         self.setdefinitions = {}
         self.git = git
+        self.gitmode = gitmode
+        self.gitshare = gitshare
         self.debug = debug
         super().__init__()
 
@@ -195,9 +197,12 @@ class DocStore:
         else:
             return self.workdir + '/' + key[0] + '/' + key[1] + '.folia.xml'
 
-    def getpath(self, key):
+    def getpath(self, key, useronly=False):
         assert isinstance(key, tuple) and len(key) == 2
-        return self.workdir + '/' + key[0]
+        if useronly:
+            return self.workdir + '/' + key[0].strip('/')[0]
+        else:
+            return self.workdir + '/' + key[0]
 
 
     def use(self, key):
@@ -254,25 +259,29 @@ class DocStore:
             doc.save(self.getfilename(key) + '.tmp')
             os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
             if self.git:
+                doinit = False
                 if os.path.exists(self.workdir + '/.git'):
                     # entire workdir is one git repo (old style)
                     targetdir = self.workdir
-                    os.chdir(self.workdir)
+                elif self.gitmode == "monolithic":
+                    doinit = True
                 else:
-                    targetdir = self.getpath(key)
-                    os.chdir(targetdir)
+                    targetdir = self.getpath(key, useronly=self.gitmode == 'user')
                     if not os.path.exists(targetdir + '/.git'):
-                        log("Initialising git repository in  " + targetdir)
-                        r = os.system("git init")
-                        if r != 0:
-                            log("ERROR during git init of " + targetdir)
-                            self.done(key)
-                            return
+                        doinit = True
+                os.chdir(targetdir)
+                if doinit:
+                    log("Initialising git repository in  " + targetdir)
+                    r = os.system("git init --shared \"" + args.gitshare + "\"")
+                    if r != 0:
+                        log("ERROR during git init of " + targetdir)
+                        self.done(key)
+                        return
                 message = "\n".join(self.changelog[key]) + "\n" + message
                 self.changelog[key] = [] #reset changelog
                 message = message.strip("\n")
                 log("Doing git commit for " + self.getfilename(key) + " -- " + message.replace("\n", " -- "))
-                r = os.system("cd " + targetdir + " && git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
+                r = os.system("cd \"" + targetdir + "\" && git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
                 if r != 0:
                     log("ERROR during git add/commit of " + self.getfilename(key))
             self.done(key)
@@ -934,6 +943,8 @@ def main():
     parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
     parser.add_argument('--allowtextredundancy',help="Allow text redundancy (will be stripped from documents otherwise)", action='store_true',default=False)
     parser.add_argument('--git',help="Enable versioning control using git (separate git repositories will be automatically created for each namespace, OR you can make one global one in the workdir manually)", action='store_true',default=False)
+    parser.add_argument('--gitshare', type='str', help="Sets the shared option when creating new git repository (git --shared). Valid values are: false|true|umask|group|all|world|everybody|0xxx, defaults to 'group'", action='store', default="group")
+    parser.add_argument('--gitmode', type=str, help="Set git mode, values are: monolithic (ALL users share a single repository, NOT recommended because of scalability); user (each user/namespace is its own git repository; this is the default); nested (each subdirectory is its own git repository, maximum scalability)", action='store', default='user')
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
@@ -948,7 +959,7 @@ def main():
         'request.show_tracebacks':False,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
-    docstore = DocStore(args.workdir, args.expirationtime, args.git, args.debug)
+    docstore = DocStore(args.workdir, args.expirationtime, args.git, args.gitmode, args.gitshare, args.debug)
     bgtask = BackgroundTaskQueue(cherrypy.engine)
     bgtask.subscribe()
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
