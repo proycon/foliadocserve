@@ -966,10 +966,13 @@ def main():
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
     def stop():
+        log("Stop triggered, unloading documents")
         docstore.forceunload()
         autounloader.unsubscribe()
         bgtask.unsubscribe()
         cherrypy.engine.exit()
+        log("All stopped")
+        logfile.close()
     cherrypy.engine.subscribe('stop',  stop)
     cherrypy.engine.subscribe('graceful',  stop)
     cherrypy.quickstart(Root(docstore,bgtask,args))
