@@ -971,6 +971,7 @@ def main():
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
     def stop():
+        global stopping
         if not stopping:
             stopping = True
             log("Stop triggered, unloading documents")
