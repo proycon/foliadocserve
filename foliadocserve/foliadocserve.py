@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+global stopping
 
 #---------------------------------------------------------------
 # FoLiA Document Server
@@ -981,6 +982,7 @@ def main():
             cherrypy.engine.exit()
             log("All stopped")
             logfile.close()
+            sys.exit(0)
     cherrypy.engine.subscribe('stop',  stop)
     cherrypy.engine.subscribe('graceful',  stop)
     cherrypy.quickstart(Root(docstore,bgtask,args))
