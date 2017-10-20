@@ -965,8 +965,13 @@ def main():
     bgtask.subscribe()
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
-    cherrypy.engine.subscribe('stop',  docstore.forceunload)
-    cherrypy.engine.subscribe('graceful',  docstore.forceunload)
+    def stop():
+        docstore.forceunload()
+        autounloader.unsubscribe()
+        bgtask.unsubscribe()
+        cherrypy.engine.exit()
+    cherrypy.engine.subscribe('stop',  stop)
+    cherrypy.engine.subscribe('graceful',  stop)
     cherrypy.quickstart(Root(docstore,bgtask,args))
 
 if __name__ == '__main__':
