@@ -943,7 +943,7 @@ def main():
     parser.add_argument('-D','--debug', type=int,help="Debug level", action='store',default=0,required=False)
     parser.add_argument('--allowtextredundancy',help="Allow text redundancy (will be stripped from documents otherwise)", action='store_true',default=False)
     parser.add_argument('--git',help="Enable versioning control using git (separate git repositories will be automatically created for each namespace, OR you can make one global one in the workdir manually)", action='store_true',default=False)
-    parser.add_argument('--gitshare', type='str', help="Sets the shared option when creating new git repository (git --shared). Valid values are: false|true|umask|group|all|world|everybody|0xxx, defaults to 'group'", action='store', default="group")
+    parser.add_argument('--gitshare', type=str, help="Sets the shared option when creating new git repository (git --shared). Valid values are: false|true|umask|group|all|world|everybody|0xxx, defaults to 'group'", action='store', default="group")
     parser.add_argument('--gitmode', type=str, help="Set git mode, values are: monolithic (ALL users share a single repository, NOT recommended because of scalability); user (each user/namespace is its own git repository; this is the default); nested (each subdirectory is its own git repository, maximum scalability)", action='store', default='user')
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
