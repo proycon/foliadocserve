@@ -158,6 +158,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
     def stop(self):
         self.bus.log("Stopping AutoUnloader")
+        self.docstore.forceunload()
         self.running = False
 
         if self.thread:
@@ -190,7 +191,6 @@ class DocStore:
         self.gitmode = gitmode
         self.gitshare = gitshare
         self.debug = debug
-        self.dead = False
         super().__init__()
 
     def getfilename(self, key):
@@ -226,7 +226,6 @@ class DocStore:
 
 
     def load(self,key, forcereload=False):
-        if self.dead: return None
         if key[0] == "testflat": key = ("testflat", "testflat")
         self.use(key)
         filename = self.getfilename(key)
@@ -412,11 +411,9 @@ class DocStore:
 
     def forceunload(self):
         """Called when the document server stops/reloads (SIGUSR1 will trigger this)"""
-        if not self.dead:
-            log("Forcibly unloading all " + str(len(self)) + " documents...")
-            for key in list(self.data.keys()):
-                self.unload(key)
-            self.dead = True
+        log("Forcibly unloading all " + str(len(self)) + " documents...")
+        for key in list(self.data.keys()):
+            self.unload(key)
 
 def validatenamespace(namespace):
     return namespace.replace('..','').replace('"','').replace(' ','_').replace(';','').replace('&','').strip('/')
