@@ -200,7 +200,7 @@ class DocStore:
     def getpath(self, key, useronly=False):
         assert isinstance(key, tuple) and len(key) == 2
         if useronly:
-            return self.workdir + '/' + key[0].strip('/')[0]
+            return self.workdir + '/' + key[0].split('/')[0]
         else:
             return self.workdir + '/' + key[0]
 
@@ -254,8 +254,9 @@ class DocStore:
                 targetdir = self.workdir
             elif self.gitmode == "monolithic":
                 doinit = True
+                targetdir = self.workdir
             else:
-                targetdir = self.getpath(key, useronly=self.gitmode == 'user')
+                targetdir = self.getpath(key, useronly=(self.gitmode == 'user'))
                 if not os.path.exists(targetdir + '/.git'):
                     doinit = True
             os.chdir(targetdir)
