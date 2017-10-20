@@ -204,6 +204,11 @@ class DocStore:
         else:
             return self.workdir + '/' + key[0]
 
+    def getkey(self, filename):
+        """reverse of getfilename()"""
+        return tuple(filename.replace(self.workdir,'').strip('/').rsplit('/'),1)
+
+
 
     def use(self, key):
         while key in self.lock:
@@ -241,7 +246,34 @@ class DocStore:
         self.done(key)
         return self.data[key]
 
-
+    def gitcommit(self, key, message="", remove=False):
+        if self.git:
+            doinit = False
+            if os.path.exists(self.workdir + '/.git'):
+                # entire workdir is one git repo (old style)
+                targetdir = self.workdir
+            elif self.gitmode == "monolithic":
+                doinit = True
+            else:
+                targetdir = self.getpath(key, useronly=self.gitmode == 'user')
+                if not os.path.exists(targetdir + '/.git'):
+                    doinit = True
+            os.chdir(targetdir)
+            if doinit:
+                log("Initialising git repository in  " + targetdir)
+                r = os.system("git init --shared \"" + self.gitshare + "\"")
+                if r != 0:
+                    log("ERROR during git init of " + targetdir)
+                    self.done(key)
+                    return
+            message = "\n".join(self.changelog[key]) + "\n" + message
+            self.changelog[key] = [] #reset changelog
+            message = message.strip("\n")
+            log("Doing git commit for " + self.getfilename(key) + " -- " + message.replace("\n", " -- "))
+            action = "rm" if remove else "add"
+            r = os.system("cd \"" + targetdir + "\" && git " + action + " \"" + self.getfilename(key) + "\" && git commit -m \"" + message.replace('"','') + "\"")
+            if r != 0:
+                log("ERROR during git " + action + "/commit of " + self.getfilename(key))
 
     def save(self, key, message = ""):
         doc = self[key]
@@ -258,32 +290,7 @@ class DocStore:
                 os.makedirs(dirname)
             doc.save(self.getfilename(key) + '.tmp')
             os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
-            if self.git:
-                doinit = False
-                if os.path.exists(self.workdir + '/.git'):
-                    # entire workdir is one git repo (old style)
-                    targetdir = self.workdir
-                elif self.gitmode == "monolithic":
-                    doinit = True
-                else:
-                    targetdir = self.getpath(key, useronly=self.gitmode == 'user')
-                    if not os.path.exists(targetdir + '/.git'):
-                        doinit = True
-                os.chdir(targetdir)
-                if doinit:
-                    log("Initialising git repository in  " + targetdir)
-                    r = os.system("git init --shared \"" + args.gitshare + "\"")
-                    if r != 0:
-                        log("ERROR during git init of " + targetdir)
-                        self.done(key)
-                        return
-                message = "\n".join(self.changelog[key]) + "\n" + message
-                self.changelog[key] = [] #reset changelog
-                message = message.strip("\n")
-                log("Doing git commit for " + self.getfilename(key) + " -- " + message.replace("\n", " -- "))
-                r = os.system("cd \"" + targetdir + "\" && git add " + self.getfilename(key) + " && git commit -m \"" + message.replace('"','') + "\"")
-                if r != 0:
-                    log("ERROR during git add/commit of " + self.getfilename(key))
+            self.gitcommit(key, message)
             self.done(key)
 
 
@@ -305,16 +312,9 @@ class DocStore:
         self.unload(key,False)
         filename = self.getfilename(key)
         if os.path.exists(filename):
-            if self.git:
-                targetdir = self.getpath(key)
-                message = "Deleting document"
-                log("Doing git commit for " + filename + " -- " + message.replace("\n", " -- "))
-                r = os.system("cd " + targetdir + " && git rm " + filename + " && git commit -m \"" + message.replace('"','') + "\"")
-                if r != 0:
-                    log("ERROR during git rm/commit of " +filename)
-            else:
-                log("Removing " + filename)
-                os.unlink(self.getfilename(key))
+            log("Removing " + filename)
+            os.unlink(self.getfilename(key))
+            self.gitcommit(key, message="Removed document", remove=True)
 
 
     def copy(self, key, newkey):
@@ -329,12 +329,7 @@ class DocStore:
                 log("Copying " + filename + " to " + newfilename)
                 targetdir = self.getpath(newkey)
                 shutil.copyfile(filename, newfilename)
-                if self.git:
-                    message = "Adding copied document"
-                    log("Doing git commit for " + newfilename + " -- " + message.replace("\n", " -- "))
-                    r = os.system("cd " + targetdir + " && git add " + newfilename + " && git commit -m \"" + message.replace('"','') + "\"")
-                    if r != 0:
-                        log("ERROR during git add/commit of " + newfilename)
+                self.gitcommit(newkey, message="Adding copied document")
 
 
     def move(self, key, newkey):
