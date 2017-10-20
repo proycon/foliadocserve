@@ -188,6 +188,7 @@ class DocStore:
         self.gitmode = gitmode
         self.gitshare = gitshare
         self.debug = debug
+        self.dead = False
         super().__init__()
 
     def getfilename(self, key):
@@ -223,6 +224,7 @@ class DocStore:
 
 
     def load(self,key, forcereload=False):
+        if self.dead: return None
         if key[0] == "testflat": key = ("testflat", "testflat")
         self.use(key)
         filename = self.getfilename(key)
@@ -408,9 +410,11 @@ class DocStore:
 
     def forceunload(self):
         """Called when the document server stops/reloads (SIGUSR1 will trigger this)"""
-        log("Signal received, unloading all " + str(len(self)) + " documents...")
-        for key in list(self.data.keys()):
-            self.unload(key)
+        if not self.dead:
+            log("Forcibly unloading all " + str(len(self)) + " documents...")
+            for key in list(self.data.keys()):
+                self.unload(key)
+            self.dead = True
 
 def validatenamespace(namespace):
     return namespace.replace('..','').replace('"','').replace(' ','_').replace(';','').replace('&','').strip('/')
