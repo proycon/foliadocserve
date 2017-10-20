@@ -108,6 +108,7 @@ class BackgroundTaskQueue(cherrypy.process.plugins.SimplePlugin):
             self.thread.start()
 
     def stop(self):
+        self.bus.log("Stopping background task queue")
         if self.safe_stop:
             self.running = "draining"
         else:
@@ -125,6 +126,7 @@ class BackgroundTaskQueue(cherrypy.process.plugins.SimplePlugin):
                     func, args, kwargs = self.q.get(block=True, timeout=self.qwait)
                 except queue.Empty:
                     if self.running == "draining":
+                        self.bus.log("Background queue drained succesfully")
                         return
                     continue
                 else:
@@ -155,20 +157,21 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
             self.thread.start()
 
     def stop(self):
-        if self.safe_stop:
-            self.running = "draining"
-        else:
-            self.running = False
+        self.bus.log("Stopping AutoUnloader")
+        self.running = False
 
         if self.thread:
             self.thread.join()
             self.thread = None
-        self.running = False
 
     def run(self):
         while self.running:
             self.docstore.autounload()
-            time.sleep(self.interval)
+            i = 0
+            while self.running and i < self.interval:
+                time.sleep(1)
+                i+=1
+
 
 
 class DocStore:
@@ -970,12 +973,9 @@ def main():
     autounloader.subscribe()
     def stop():
         log("Stop triggered")
-        docstore.forceunload()
-        autounloader.unsubscribe()
         bgtask.unsubscribe()
-        cherrypy.engine.exit()
+        autounloader.unsubscribe()
         log("All stopped")
-        logfile.close()
     cherrypy.engine.subscribe('stop',  stop)
     cherrypy.engine.subscribe('graceful',  stop)
     cherrypy.quickstart(Root(docstore,bgtask,args))
