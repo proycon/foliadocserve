@@ -51,6 +51,7 @@ class NoSuchDocument(Exception):
 
 VERSION = "0.6.4"
 
+stopping = False
 logfile = None
 def log(msg):
     if logfile:
@@ -940,7 +941,7 @@ class Root:
 
 
 def main():
-    global logfile #pylint: disable=global-statement
+    global logfile, stopping #pylint: disable=global-statement
     parser = argparse.ArgumentParser(description="FoLiA Document Server - Allows querying and manipulating FoLiA documents. Do not serve publicly in production use!", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d','--workdir', type=str,help="Work directory", action='store',required=True)
     parser.add_argument('-p','--port', type=int,help="Port", action='store',default=8080,required=False)
@@ -970,13 +971,15 @@ def main():
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
     def stop():
-        log("Stop triggered, unloading documents")
-        docstore.forceunload()
-        autounloader.unsubscribe()
-        bgtask.unsubscribe()
-        cherrypy.engine.exit()
-        log("All stopped")
-        logfile.close()
+        if not stopping:
+            stopping = True
+            log("Stop triggered, unloading documents")
+            docstore.forceunload()
+            autounloader.unsubscribe()
+            bgtask.unsubscribe()
+            cherrypy.engine.exit()
+            log("All stopped")
+            logfile.close()
     cherrypy.engine.subscribe('stop',  stop)
     cherrypy.engine.subscribe('graceful',  stop)
     cherrypy.quickstart(Root(docstore,bgtask,args))
