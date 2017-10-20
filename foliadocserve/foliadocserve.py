@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-global stopping
-
 #---------------------------------------------------------------
 # FoLiA Document Server
 #   by Maarten van Gompel
