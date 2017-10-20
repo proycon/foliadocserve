@@ -408,7 +408,7 @@ class DocStore:
 
     def forceunload(self):
         """Called when the document server stops/reloads (SIGUSR1 will trigger this)"""
-        log("Signal received, unloading all documents...")
+        log("Signal received, unloading all " + str(len(self)) + " documents...")
         for key in list(self.data.keys()):
             self.unload(key)
 
@@ -481,7 +481,12 @@ class Root:
         return "ok"
 
 
-
+    @cherrypy.expose
+    def flush(self):
+        log("Flush called")
+        self.docstore.forceunload()
+        cherrypy.response.headers['Content-Type']= 'text/plain'
+        return "done"
 
     @cherrypy.expose
     def query(self, **kwargs):
