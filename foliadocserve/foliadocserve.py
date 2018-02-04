@@ -231,18 +231,19 @@ class DocStore:
 
     def load(self,key, forcereload=False):
         if key[0] == "testflat": key = ("testflat", "testflat")
-        if time.time() - self.lastunloadcheck > 900: #no unload check for 15 mins? background thread seems to have crashed?
-            self.fail = True #trigger lockdown
-            raise NoSuchDocument("Document Server is in lockdown due to loss of contact with autoupdater thread, refusing to process documents...")
-        if self.fail and not self.ignorefail:
-            raise NoSuchDocument("Document Server is in lockdown due to earlier failure during XML serialisation, refusing to process documents...")
         self.use(key)
         filename = self.getfilename(key)
+        if time.time() - self.lastunloadcheck > 900: #no unload check for 15 mins? background thread seems to have crashed?
+            self.fail = True #trigger lockdown
+            self.forceunload() #force unload of everything
+            raise NoSuchDocument("Document Server is in lockdown due to loss of contact with autoupdater thread, refusing to process new documents...")
         if key not in self or forcereload:
             if not os.path.exists(filename):
                 log("File not found: " + filename)
                 self.done(key)
                 raise NoSuchDocument
+            if self.fail and not self.ignorefail:
+                raise NoSuchDocument("Document Server is in lockdown due to earlier failure during XML serialisation, refusing to process new documents...")
             log("Loading " + filename)
             try:
                 self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
@@ -416,22 +417,25 @@ class DocStore:
     def autounload(self, save=True):
         log("Documents loaded: " + str(len(self)))
         self.lastunloadcheck = time.time()
-        unload = []
-        for d in self.lastaccess:
-            if d not in unload:
-                dounload = True #falsify: all sessions must be expired before we can actually unload the document
-                for sid, t in self.lastaccess[d].items():
-                    expirecheck = time.time() - t
-                    if expirecheck < self.expiretime:
-                        dounload = False
+        if self.fail and not self.ignorefail:
+            self.forceunload() #if we enter a failed state, we forcibly unload everything (probably again and again until the problem is fixed)
+        else:
+            unload = []
+            for d in self.lastaccess:
+                if d not in unload:
+                    dounload = True #falsify: all sessions must be expired before we can actually unload the document
+                    for sid, t in self.lastaccess[d].items():
+                        expirecheck = time.time() - t
+                        if expirecheck < self.expiretime:
+                            dounload = False
 
-                if dounload:
-                    log("Triggering unload for " + "/".join(d) + " [" + str(expirecheck) + "s / " + sid + "]")
-                    unload.append(d)
+                    if dounload:
+                        log("Triggering unload for " + "/".join(d) + " [" + str(expirecheck) + "s / " + sid + "]")
+                        unload.append(d)
 
-        if unload:
-            for key in unload:
-                self.unload(key, save)
+            if unload:
+                for key in unload:
+                    self.unload(key, save)
 
     def forceunload(self):
         """Called when the document server stops/reloads (SIGUSR1 will trigger this)"""
