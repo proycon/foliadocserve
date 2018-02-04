@@ -983,7 +983,7 @@ def main():
     parser.add_argument('--gitmode', type=str, help="Set git mode, values are: monolithic (ALL users share a single repository, NOT recommended because of scalability); user (each user/namespace is its own git repository; this is the default); nested (each subdirectory is its own git repository, maximum scalability)", action='store', default='user')
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
-    parser.add_argument('--ignorefail', type=bool,help="Ignore failures when saving documents. By default, the document server will lock up and refuse to load new documents (requiring manual restart)", action='store_true',default=False,required=False)
+    parser.add_argument('--ignorefail', help="Ignore failures when saving documents. By default, the document server will lock up and refuse to load new documents (requiring manual restart)", action='store_true',default=False,required=False)
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
     logfile = open(args.logfile,'w',encoding='utf-8')
