@@ -233,9 +233,9 @@ class DocStore:
         if key[0] == "testflat": key = ("testflat", "testflat")
         if time.time() - self.lastunloadcheck > 900: #no unload check for 15 mins? background thread seems to have crashed?
             self.fail = True #trigger lockdown
-            self.ignorefail = False #this is unignorable
+            raise NoSuchDocument("Document Server is in lockdown due to loss of contact with autoupdater thread, refusing to process documents...")
         if self.fail and not self.ignorefail:
-            raise NoSuchDocument("Document Server is in lockdown due to earlier failure, refusing to process documents...")
+            raise NoSuchDocument("Document Server is in lockdown due to earlier failure during XML serialisation, refusing to process documents...")
         self.use(key)
         filename = self.getfilename(key)
         if key not in self or forcereload:
