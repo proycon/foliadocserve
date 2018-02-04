@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.4"
+VERSION = "0.6.5"
 
 logfile = None
 def log(msg):
@@ -176,7 +176,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
 
 class DocStore:
-    def __init__(self, workdir, expiretime, git=False, gitmode="user", gitshare=True, debug=False):
+    def __init__(self, workdir, expiretime, git=False, gitmode="user", gitshare=True, ignorefail=False, debug=False):
         log("Initialising document store in " + workdir)
         self.workdir = workdir
         self.expiretime = expiretime
@@ -184,6 +184,10 @@ class DocStore:
         self.updateq = defaultdict(lambda: defaultdict(set)) #update queue, (namespace,docid) => session_id => set(folia element id), for concurrency
         self.lastaccess = defaultdict(dict) # (namespace,docid) => session_id => time
         self.changelog = defaultdict(list) # (namespace,docid) => [changemessage]
+        self.lastunloadcheck = time.time()
+
+        self.ignorefail = ignorefail
+        self.fail = False
 
         self.lock = set() #will contain (namespace,docid) of temporarily locked documents, loading/unloading/saving are blocking operations
         self.setdefinitions = {}
@@ -227,6 +231,11 @@ class DocStore:
 
     def load(self,key, forcereload=False):
         if key[0] == "testflat": key = ("testflat", "testflat")
+        if time.time() - self.lastunloadcheck > 900: #no unload check for 15 mins? background thread seems to have crashed?
+            self.fail = True #trigger lockdown
+            self.ignorefail = False #this is unignorable
+        if self.fail and not self.ignorefail:
+            raise NoSuchDocument("Document Server is in lockdown due to earlier failure, refusing to process documents...")
         self.use(key)
         filename = self.getfilename(key)
         if key not in self or forcereload:
@@ -292,10 +301,24 @@ class DocStore:
             if not os.path.exists(dirname):
                 log("Directory does not exist yet, creating on the fly: " + dirname)
                 os.makedirs(dirname)
-            doc.save(self.getfilename(key) + '.tmp')
-            os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
+            try:
+                doc.save(self.getfilename(key) + '.tmp')
+            except Exception as e:
+                self.fail = True
+                log("ERROR: Unable to save document " + self.getfilename(key) + ": [" + e.__class__.__name__ + "] " + str(e) )
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
+                if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
+                return False
+            try:
+                os.rename(self.getfilename(key) + '.tmp', self.getfilename(key))
+            except Exception as e:
+                self.fail = True
+                log("ERROR: Unable to complete saving of document " + self.getfilename(key) + ": ["  + e.__class__.__name__ + "] " + str(e) )
+                return False
             self.gitcommit(key, message)
             self.done(key)
+            return True
 
 
     def unload(self, key, save=True):
@@ -392,6 +415,7 @@ class DocStore:
 
     def autounload(self, save=True):
         log("Documents loaded: " + str(len(self)))
+        self.lastunloadcheck = time.time()
         unload = []
         for d in self.lastaccess:
             if d not in unload:
@@ -632,8 +656,12 @@ class Root:
                 else:
                     raise Exception("Invalid query")
             except NoSuchDocument:
-                log("[QUERY FAILED] No such document")
-                raise cherrypy.HTTPError(404, "Document not found: " + docsel[0] + "/" + docsel[1])
+                if self.docstore.fail and not self.docstore.ignorefail:
+                    log("[QUERY FAILED] Document server is in lockdown due to earlier failure. Restart required!")
+                    raise cherrypy.HTTPError(403, "Document server is in lockdown due to earlier failure. Contact your FLAT administrator")
+                else:
+                    log("[QUERY FAILED] No such document")
+                    raise cherrypy.HTTPError(404, "Document not found: " + docsel[0] + "/" + docsel[1])
             except fql.QueryError as e:
                 log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
@@ -951,6 +979,7 @@ def main():
     parser.add_argument('--gitmode', type=str, help="Set git mode, values are: monolithic (ALL users share a single repository, NOT recommended because of scalability); user (each user/namespace is its own git repository; this is the default); nested (each subdirectory is its own git repository, maximum scalability)", action='store', default='user')
     parser.add_argument('--expirationtime', type=int,help="Expiration time in seconds, documents will be unloaded from memory after this period of inactivity", action='store',default=900,required=False)
     parser.add_argument('--interval', type=int,help="Interval at which the unloader checks documents (in seconds)", action='store',default=60,required=False)
+    parser.add_argument('--ignorefail', type=bool,help="Ignore failures when saving documents. By default, the document server will lock up and refuse to load new documents (requiring manual restart)", action='store_true',default=False,required=False)
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
     logfile = open(args.logfile,'w',encoding='utf-8')
@@ -963,7 +992,7 @@ def main():
         'request.show_tracebacks':False,
     })
     cherrypy.process.servers.wait_for_occupied_port = fake_wait_for_occupied_port
-    docstore = DocStore(args.workdir, args.expirationtime, args.git, args.gitmode, args.gitshare, args.debug)
+    docstore = DocStore(args.workdir, args.expirationtime, args.git, args.gitmode, args.gitshare, args.ignorefail, args.debug)
     bgtask = BackgroundTaskQueue(cherrypy.engine)
     bgtask.subscribe()
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
