@@ -986,7 +986,7 @@ def main():
     parser.add_argument('--ignorefail', help="Ignore failures when saving documents. By default, the document server will lock up and refuse to load new documents (requiring manual restart)", action='store_true',default=False,required=False)
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
-    logfile = open(args.logfile,'w',encoding='utf-8')
+    logfile = open(args.logfile,'a',encoding='utf-8')
     os.chdir(args.workdir)
     cherrypy.config.update({
         'server.socket_host': args.host,
