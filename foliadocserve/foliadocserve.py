@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.5"
+VERSION = "0.6.6"
 
 logfile = None
 def log(msg):
@@ -1002,12 +1002,14 @@ def main():
     autounloader = AutoUnloader(cherrypy.engine, docstore, args.interval)
     autounloader.subscribe()
     def stop():
-        log("Stop triggered")
+        log("Stop signal received")
+        docstore.forceunload()
         bgtask.unsubscribe()
         autounloader.unsubscribe()
-        log("All stopped")
+        log("Quitting")
+        sys.exit(0)
     cherrypy.engine.subscribe('stop',  stop)
-    cherrypy.engine.subscribe('graceful',  stop)
+    cherrypy.engine.subscribe('graceful',  docstore.forceunload)
     cherrypy.quickstart(Root(docstore,bgtask,args))
 
 if __name__ == '__main__':
