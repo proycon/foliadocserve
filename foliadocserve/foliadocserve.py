@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.6"
+VERSION = "0.6.7"
 
 logfile = None
 def log(msg):
@@ -624,11 +624,12 @@ class Root:
                         doc.metadata[key] = value
             else:
                 raise cherrypy.HTTPError(404, "Unable to edit metadata on document with non-native metadata type (" + "/".join(docsel)+")")
+        else:
+            doc = None #initialize document only if not already initialized by metadta changes
 
 
         results = [] #stores all results
         xresults = [] #stores results that should be transferred to other sessions as well, i.e. results of adds/edits
-        doc = None
         prevdocid = None
         multidoc = False #are the queries over multiple distinct documents?
         format = None
