@@ -615,6 +615,7 @@ class Root:
                 raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e) + "\n\nQuery was: " + rawquery)
 
             if doc.metadatatype == folia.MetaDataType.NATIVE:
+                doc.changed = True
                 self.docstore.lastaccess[docsel][sid] = time.time()
                 log("[METADATA EDIT ON " + "/".join(docsel)  + "]")
                 for key, value in metachanges.items():
