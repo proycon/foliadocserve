@@ -48,7 +48,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.6.8"
+VERSION = "0.7.0"
 
 logfile = None
 def log(msg):
@@ -496,6 +496,8 @@ class Root:
             if query.action and query.action.action != "SELECT":
                 if query.action.focus and query.action.focus.Class:
                     changemsg = query.action.action.lower() + " on " + query.action.focus.Class.XMLTAG
+                    if query.action.assignments and 'processor' in query.action.assignments:
+                        changemsg += " by " + query.action.assignments['processor']
                     if query.action.assignments and 'annotator' in query.action.assignments:
                         changemsg += " by " + query.action.assignments['annotator']
                     self.docstore.changelog[docselector].append(changemsg)
