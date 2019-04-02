@@ -75,7 +75,7 @@ def gettoc(element, processed = None):
 def isrtl(doc):
     """Checks if the document should be rendered in right-to-left fashion"""
     if doc.metadata:
-        if doc.metadatatype == folia.MetaDataType.NATIVE:
+        if doc.metadatatype == "native":
             if 'direction' in doc.metadata and doc.metadata['direction'] == 'rtl':
                 return True
 
@@ -425,7 +425,7 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
 
             html += "</" + htmltag + ">"
 
-            structure[element.id] =  element.json(ignorelist=(folia.AbstractStructureElement,folia.AbstractAnnotationLayer, folia.Correction, folia.AbstractTokenAnnotation, folia.AbstractExtendedTokenAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
+            structure[element.id] =  element.json(ignorelist=(folia.AbstractStructureElement,folia.AbstractAnnotationLayer, folia.Correction, folia.AbstractInlineAnnotation, folia.AbstractSpanAnnotation, folia.TextContent, folia.PhonContent, folia.Alternative) )  #)recurse=False)
             if element.parent and element.parent.id:
                 structure[element.id]['parent'] = element.parent.id
             if isinstance(element, (folia.Morpheme, folia.Phoneme)):
@@ -499,7 +499,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
     for element in parentelement:
         #skip higher-order annotations; they are handled by their parents
         #also skip structure annotations, they are handled by getstructure()
-        if not isinstance(element, folia.AbstractElement) or isinstance(element, (folia.AbstractStructureElement, folia.Feature, folia.AlignReference, folia.AbstractSpanRole, folia.Comment, folia.Description)): continue
+        if not isinstance(element, folia.AbstractElement) or isinstance(element, (folia.AbstractStructureElement, folia.Feature, folia.LinkReference, folia.AbstractSpanRole, folia.Comment, folia.Description)): continue
 
         #Get the extended ID
         if element.id:
@@ -537,7 +537,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             getannotations_correction(element,structure,annotations, auth=auth, log=log,debug=debug)
             if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
-        elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractTokenAnnotation, folia.String)) and not spanonly:
+        elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractInlineAnnotation, folia.String)) and not spanonly:
             processed = True
             annotations[extid] = element.json()
             annotations[extid]['targets'] = [ structureelement.id ]
