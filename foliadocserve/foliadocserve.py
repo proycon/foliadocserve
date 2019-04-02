@@ -34,7 +34,9 @@ import queue
 from collections import defaultdict
 import cherrypy
 from jinja2 import Environment, FileSystemLoader
-from pynlpl.formats import folia, fql, cql
+from folia import fql
+import folia.main as folia
+from pynlpl.formats import cql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
 from foliatools.foliatextcontent import cleanredundancy
@@ -991,6 +993,7 @@ def main():
     parser.add_argument('--host',type=str,help="Host/IP to listen for (defaults to all interfaces)", action='store',default="0.0.0.0")
     args = parser.parse_args()
     logfile = open(args.logfile,'a',encoding='utf-8')
+    log("foliadocserve " + VERSION)
     os.chdir(args.workdir)
     cherrypy.config.update({
         'server.socket_host': args.host,
@@ -1017,4 +1020,5 @@ def main():
     cherrypy.quickstart(Root(docstore,bgtask,args))
 
 if __name__ == '__main__':
+    print("foliadocserve " + VERSION,file=sys.stderr)
     main()

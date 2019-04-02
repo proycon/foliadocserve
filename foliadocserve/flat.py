@@ -19,7 +19,8 @@
 import json
 import random
 import sys
-from pynlpl.formats import folia,fql
+from folia import fql
+import folia.main as folia
 from foliatools.foliatextcontent import linkstrings
 
 
