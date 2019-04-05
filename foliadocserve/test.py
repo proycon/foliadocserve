@@ -1,6 +1,6 @@
 import sys
 import traceback
-from pynlpl.formats import folia
+import folia.main as folia
 
 def testequal(value, reference, testmessage,testresult=True):
     if value == reference:
