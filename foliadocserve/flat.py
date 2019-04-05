@@ -97,6 +97,7 @@ def parseresults(results, doc, **kwargs):
     response = {'version': kwargs['version']} #foliadocserve version
     if 'declarations' in kwargs and kwargs['declarations']:
         response['declarations'] = tuple(getdeclarations(doc))
+        response['provenance'] = getprovenance(doc)
     if 'setdefinitions' in kwargs and kwargs['setdefinitions']:
         response['setdefinitions'] =  getsetdefinitions(doc)
     if 'metadata' in kwargs and kwargs['metadata']:
@@ -760,13 +761,26 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
     annotations[element.id]['scope'] = [ p.id ]
 
 def getdeclarations(doc):
-    #resolve annotation type and return the XML tag that is primary for it
-    for annotationtype, set in doc.annotations:
+    """resolve annotation type and return the XML tag that is primary for it"""
+    for annotationtype, annotationset in doc.annotations:
         if annotationtype in folia.ANNOTATIONTYPE2XML:
             xmltag = folia.ANNOTATIONTYPE2XML[annotationtype]
-            C = folia.XML2CLASS[xmltag]
-            if not issubclass(C, folia.AbstractTextMarkup):
-                yield {'annotationtype': xmltag, 'set': set} #annotationtype as xmltag
+            #C = folia.XML2CLASS[xmltag]
+            try:
+                annotators = [ annotator.processor_id for annotator in doc.annotators[annotationtype][annotationset] ]
+            except KeyError:
+                annotators = []
+            if folia.annotationtypeisspan(annotationtype):
+                try:
+                    groupannotations = doc.groupannotations[annotationtype][set]
+                except KeyError:
+                    groupannotations = False
+                yield {'annotationtype': xmltag, 'set': annotationset, 'annotators': annotators, 'groupannotations':  groupannotations } #annotationtype as xmltag, groupannotations attribute is only relevant for span annotations
+            else:
+                yield {'annotationtype': xmltag, 'set': annotationset, 'annotators': annotators} #annotationtype as xmltag
+
+def getprovenance(doc):
+    return doc.provenance.json()
 
 def getsetdefinitions(doc):
     setdefs = {}
