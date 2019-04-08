@@ -32,6 +32,7 @@ import datetime
 import shutil
 import queue
 from collections import defaultdict
+from socket import getfqdn
 import cherrypy
 from jinja2 import Environment, FileSystemLoader
 from folia import fql
@@ -51,6 +52,7 @@ class NoSuchDocument(Exception):
 
 
 VERSION = "0.7.0"
+PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\""
 
 logfile = None
 def log(msg):
@@ -555,6 +557,7 @@ class Root:
         for rawquery in rawqueries:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
+                rawquery = rawquery.replace("$FOLIADOCSERVE_PROCESSOR", PROCESSOR_FOLIADOCSERVE)
                 if not docsel: docsel = prevdocsel
                 self.docstore.use(docsel)
                 if self.debug >= 2: log("[acquired lock " + "/".join(docsel)+"]")
