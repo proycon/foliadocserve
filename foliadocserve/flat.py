@@ -382,7 +382,7 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
             except folia.NoSuchText:
                 annotationbox = ""
                 label = ""
-            if isinstance(element, folia.Word):
+            if isinstance(element, (folia.Word, folia.HiddenWord)):
                 if element.space:
                     label += "&nbsp;"
             elif element.TEXTDELIMITER == " ":
@@ -430,20 +430,20 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
             if element.parent and element.parent.id:
                 structure[element.id]['parent'] = element.parent.id
             if isinstance(element, (folia.Morpheme, folia.Phoneme)):
-                structure[element.id]['parentstructure'] = element.ancestor(folia.Word).id
+                structure[element.id]['parentstructure'] = element.ancestor(folia.Word, folia.Hiddenword).id
             #structure[element.id]['targets'] = [ element.id ]
             #structure[element.id]['scope'] = [ element.id ]
             structure[element.id]['structure'] = subids
             structure[element.id]['annotations'] = [] #will be set by getannotations() later
             if incorrection:
                 structure[element.id]['incorrection'] = incorrection
-            if isinstance(element, folia.Word):
-                prevword = element.previous(folia.Word,None)
+            if isinstance(element, (folia.Word, folia.Hiddenword)):
+                prevword = element.previous((folia.Word, folia.Hiddenword),None)
                 if prevword:
                     structure[element.id]['previousword'] =  prevword.id
                 else:
                     structure[element.id]['previousword'] = None
-                nextword = element.next(folia.Word,None )
+                nextword = element.next((folia.Word, folia.Hiddenword),None )
                 if nextword:
                     structure[element.id]['nextword'] =  nextword.id
                 else:
@@ -465,7 +465,7 @@ def getannotations(doc, structure, annotations = None,debug=False,log=lambda s: 
         e = doc[id]
         processed.add(id)
         getannotations_in(e, structure, annotations, debug=debug,log=log)
-        if isinstance(e, folia.Word) and e.parent:
+        if isinstance(e, (folia.Word, folia.Hiddenword)) and e.parent:
             p = e.parent
             while p is not None:
                 if isinstance(p, folia.AbstractStructureElement) and p.id and p.id not in structure and p.id not in processed:
@@ -572,12 +572,12 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                 extid = element.id
 
             #also generate IDs for span roles prior to json serialisation:
-            for child in element.select(folia.AbstractSpanRole, ignore=(folia.Word,folia.Morpheme)):
+            for child in element.select(folia.AbstractSpanRole, ignore=folia.wrefables):
                 if child.id is None:
                     child.id = element.generate_id(child)
                     child.doc.index[child.id] = child
 
-            annotations[extid] = element.json(ignorelist=(folia.Word,folia.Morpheme,folia.Phoneme)) #don't descend into words (do descend for nested span annotations)
+            annotations[extid] = element.json(ignorelist=folia.wrefables) #don't descend into words (do descend for nested span annotations)
             annotations[extid]['span'] = True
             annotations[extid]['targets'] = [ x.id for x in element.wrefs(recurse=False) ]
             scope =  list(element.wrefs(recurse=True))

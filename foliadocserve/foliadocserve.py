@@ -291,7 +291,7 @@ class DocStore:
             action = "rm" if remove else "add"
             r = os.system("cd \"" + targetdir + "\" && git " + action + " \"" + self.getfilename(key) + "\" && git commit -m \"" + message.replace('"','') + "\"")
             if r != 0:
-                log("ERROR during git " + action + "/commit of " + self.getfilename(key))
+                log("ERROR during git " + action + "/commit of " + self.getfilename(key) + " in " + targetdir)
 
     def save(self, key, message = ""):
         doc = self[key]
