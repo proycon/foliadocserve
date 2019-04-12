@@ -382,7 +382,7 @@ def getstructure(element, structure, bookkeeper, incorrection=None, debug=False,
             except folia.NoSuchText:
                 annotationbox = ""
                 label = ""
-            if isinstance(element, (folia.Word, folia.HiddenWord)):
+            if isinstance(element, (folia.Word, folia.Hiddenword)):
                 if element.space:
                     label += "&nbsp;"
             elif element.TEXTDELIMITER == " ":
