@@ -280,6 +280,8 @@ def gethtmltext(element, textclass="current"):
             return "<a href=\"" + element.href + "\">" + s + "</a>"
         else:
             return s
+    elif isinstance(element, folia.Hiddenword):
+        return gethtmltext(element.hiddentextcontent(textclass)) #only explicit text!
     else:
         return gethtmltext(element.textcontent(textclass)) #only explicit text!
 
