@@ -31,6 +31,7 @@ import threading
 import datetime
 import shutil
 import queue
+import re
 from collections import defaultdict
 from socket import getfqdn
 import cherrypy
@@ -41,6 +42,8 @@ from pynlpl.formats import cql
 from foliadocserve.flat import parseresults, getflatargs
 from foliadocserve.test import test
 from foliatools.foliatextcontent import cleanredundancy
+from foliatools.foliaupgrade import upgrade
+from foliatools import VERSION as FOLIATOOLSVERSION
 
 syspath = os.path.dirname(os.path.realpath(__file__))
 env = Environment(loader=FileSystemLoader(syspath + '/templates'))
@@ -927,7 +930,12 @@ class Root:
         #data =cherrypy.request.params['data']
         try:
             log("Loading document from upload")
-            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True)
+            mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
+            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True, processor=mainprocessor)
+            if needsfoliaupgrade(data):
+                upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
+                mainprocessor.append(upgrader)
+                upgrade(doc, upgrader)
             if not self.allowtextredundancy:
                 for e in doc.data:
                     cleantextredundancy(e)
@@ -977,6 +985,19 @@ class Root:
             return "{\"version\":\""+VERSION+"\"}"
         else:
             raise cherrypy.HTTPError(404, "No target specified")
+
+def needsfoliaupgrade(data):
+    snippet = data[:512]
+    regexp = re.compile('version="([0-9\.]+)"')
+    match = regexp.search(data)
+    if match:
+        version = match.group(1)
+    else:
+        return True
+    if folia.checkversion(version, "2.0.0") < 0:
+        return True
+    else:
+        return False
 
 
 def main():
