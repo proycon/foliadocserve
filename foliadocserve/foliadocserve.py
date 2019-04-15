@@ -52,7 +52,7 @@ class NoSuchDocument(Exception):
 
 
 VERSION = "0.7.0"
-PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\""
+PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\" src \"https://github.com/proycon/foliadocserve\""
 
 logfile = None
 def log(msg):
@@ -927,7 +927,7 @@ class Root:
         #data =cherrypy.request.params['data']
         try:
             log("Loading document from upload")
-            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True)
+            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True)
             if not self.allowtextredundancy:
                 for e in doc.data:
                     cleantextredundancy(e)
