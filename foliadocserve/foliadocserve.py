@@ -252,9 +252,12 @@ class DocStore:
             if self.fail and not self.ignorefail:
                 raise NoSuchDocument("Document Server is in lockdown due to earlier failure during XML serialisation, refusing to process new documents...")
             log("Loading " + filename)
+            mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
             try:
-                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True)
-                self.data[key].changed = False
+                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,processor=mainprocessor)
+                if folia.checkversion(self.data[key], "2.0.0") < 0:
+                    upgrade(self.data[key],mainprocessor)
+                self.data[key].changed = False #we do not count the above upgrade as a change yet (meaning it won't be saved unless an annotation is also added/edited)
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
