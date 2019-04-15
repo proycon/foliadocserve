@@ -255,7 +255,8 @@ class DocStore:
             mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
             try:
                 self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,processor=mainprocessor)
-                if folia.checkversion(self.data[key], "2.0.0") < 0:
+                if folia.checkversion(self.data[key].version, "2.0.0") < 0:
+                    log("Upgrading " + self.data[key].filename)
                     upgrade(self.data[key],mainprocessor)
                 self.data[key].changed = False #we do not count the above upgrade as a change yet (meaning it won't be saved unless an annotation is also added/edited)
             except Exception as e:
@@ -936,6 +937,7 @@ class Root:
             mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
             doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True, processor=mainprocessor)
             if needsfoliaupgrade(data):
+                log("Upgrading " + doc.filename)
                 upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
                 mainprocessor.append(upgrader)
                 upgrade(doc, upgrader)
