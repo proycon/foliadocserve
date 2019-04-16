@@ -257,7 +257,9 @@ class DocStore:
                 self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,processor=mainprocessor)
                 if folia.checkversion(self.data[key].version, "2.0.0") < 0:
                     log("Upgrading " + self.data[key].filename)
-                    upgrade(self.data[key],mainprocessor)
+                    upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
+                    mainprocessor.append(upgrader)
+                    upgrade(self.data[key],upgrader)
                 self.data[key].changed = False #we do not count the above upgrade as a change yet (meaning it won't be saved unless an annotation is also added/edited)
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
