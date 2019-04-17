@@ -510,7 +510,7 @@ class Root:
                 if query.action.focus and query.action.focus.Class:
                     changemsg = query.action.action.lower() + " on " + query.action.focus.Class.XMLTAG
                     if query.action.assignments and 'processor' in query.action.assignments:
-                        changemsg += " by " + query.action.assignments['processor']
+                        changemsg += " by " + query.action.assignments['processor'].id
                     if query.action.assignments and 'annotator' in query.action.assignments:
                         changemsg += " by " + query.action.assignments['annotator']
                     self.docstore.changelog[docselector].append(changemsg)
