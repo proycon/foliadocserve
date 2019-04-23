@@ -100,6 +100,7 @@ def parseresults(results, doc, **kwargs):
         response['provenance'] = getprovenance(doc)
     if 'setdefinitions' in kwargs and kwargs['setdefinitions']:
         response['setdefinitions'] =  getsetdefinitions(doc)
+        response['failedsetdefinitions'] = doc.failedsetdefinitions
     if 'metadata' in kwargs and kwargs['metadata']:
         response['metadata'] =  getmetadata(doc)
     if 'toc' in kwargs and kwargs['toc']:

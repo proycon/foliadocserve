@@ -254,7 +254,7 @@ class DocStore:
             log("Loading " + filename)
             mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
             try:
-                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,processor=mainprocessor)
+                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,allowadhocsets=True,processor=mainprocessor)
                 if folia.checkversion(self.data[key].version, "2.0.0") < 0:
                     log("Upgrading " + self.data[key].filename)
                     upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
@@ -937,7 +937,7 @@ class Root:
         try:
             log("Loading document from upload")
             mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
-            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True, processor=mainprocessor)
+            doc = folia.Document(string=data,setdefinitions=self.docstore.setdefinitions, loadsetdefinitions=True, autodeclare=True, allowadhocsets=True, processor=mainprocessor)
             if needsfoliaupgrade(data):
                 log("Upgrading " + doc.filename)
                 upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
