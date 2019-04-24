@@ -994,6 +994,8 @@ class Root:
             raise cherrypy.HTTPError(404, "No target specified")
 
 def needsfoliaupgrade(data):
+    if isinstance(data, bytes):
+        data = str(data,'utf-8')
     snippet = data[:512]
     regexp = re.compile('version="([0-9\.]+)"')
     match = regexp.search(data)
