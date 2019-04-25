@@ -729,7 +729,7 @@ def getannotations_correction(element, structure, annotations, debug=False,log=l
 
     annotations[element.id] = {'id': element.id ,'set': element.set, 'class': element.cls, 'structural': correction_structure, 'confidence': element.confidence, 'type': 'correction', 'new': correction_new,'current': correction_current, 'original': correction_original, 'suggestions': correction_suggestions}
     if element.processor:
-        annotations[element.id]['processor'] = element.processor
+        annotations[element.id]['processor'] = element.processor.id
     if element.annotator:
         annotations[element.id]['annotator'] = element.annotator
     if element.annotatortype == folia.AnnotatorType.AUTO:
