@@ -46,5 +46,5 @@ setup(
         ]
     },
     package_data = {'foliadocserve':['templates/index.html','testflat.folia.xml'] },
-    install_requires=['lxml >= 2.2','folia >= 2.0.7','pynlpl','FoLiA-tools >= 2.0.5','cherrypy','Jinja2']
+    install_requires=['lxml >= 2.2','folia >= 2.0.8','pynlpl','FoLiA-tools >= 2.0.7','cherrypy','Jinja2']
 )
