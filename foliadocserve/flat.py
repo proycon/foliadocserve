@@ -479,7 +479,7 @@ def getannotations(doc, structure, annotations = None,debug=False,log=lambda s: 
 
     return annotations
 
-def getannotations_in(parentelement, structure, annotations, incorrection=None, auth=True, debug=False,log=lambda s: print(s,file=sys.stderr),idprefix=None, spanonly=False):
+def getannotations_in(parentelement, structure, annotations, incorrection=None, inalternative=None,auth=True, debug=False,log=lambda s: print(s,file=sys.stderr),idprefix=None, spanonly=False):
     #Get annotations in the specified parentelement and add them to the annotations dictionary (passed as argument)
     #Structure dictionary is also passed and references for all found annotations are made
     idlist = []
@@ -506,6 +506,11 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
         #Get the extended ID
         if element.id:
             extid = element.id
+        elif isinstance(element, folia.Alternative):
+            #we require IDs on alternatives, make one on the fly
+            element.id = element.doc.id + ".alt.%032x" % random.getrandbits(128)
+            element.doc.index[element.id] = element
+            extid = element.id
         elif isinstance(element, folia.Correction):
             #we require IDs on corrections, make one on the fly
             element.id = element.doc.id + ".correction.%032x" % random.getrandbits(128)
@@ -521,6 +526,8 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                 extid = idprefix + '/' + element.XMLTAG
             elif incorrection:
                 extid = incorrection + '/' + element.XMLTAG
+            elif inalternative:
+                extid = inalternative + '/' + element.XMLTAG
             else:
                 extid = structureelement.id + '/' + element.XMLTAG
             if isinstance(element, (folia.TextContent, folia.PhonContent)):
@@ -537,6 +544,13 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
         if isinstance(element, folia.Correction):
             processed = True
             getannotations_correction(element,structure,annotations, auth=auth, log=log,debug=debug)
+            if auth and structureelement.id in structure:
+                structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
+        elif isinstance(element, folia.Alternative):
+            processed = True
+            annotations[extid] = element.json()
+            annotations[extid]['targets'] = [ structureelement.id ]
+            annotations[extid]['scope'] = [ structureelement.id ]
             if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
         elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractInlineAnnotation, folia.String)) and not spanonly:
@@ -617,6 +631,8 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             if debug: log("(" + str(len(idlist)+1) + ") Successfully processed annotation " + element.XMLTAG + " in " + parentelement.XMLTAG + "; extended ID " + extid)
             if incorrection:
                 annotations[extid]['incorrection'] = incorrection
+            if inalternative:
+                annotations[extid]['inalternative'] = inalternative
             annotations[extid]['auth'] = auth
             idlist.append(extid)
 
