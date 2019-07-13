@@ -535,7 +535,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             elif element.set:
                 extid += '/' + element.set
             else:
-                extid += '/undefined'
+                extid += '/null'
 
         if debug:
             log("Processing annotation " + element.XMLTAG + " in " + parentelement.XMLTAG + "; extended ID " + extid)
@@ -561,6 +561,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
         elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractInlineAnnotation, folia.String)) and not spanonly:
             processed = True
             annotations[extid] = element.json()
+            if 'set' not in annotations[extid]: annotations[extid]['set'] = None #translates to null
             annotations[extid]['targets'] = [ structureelement.id ]
             annotations[extid]['scope'] = [ structureelement.id ]
             if auth and structureelement.id in structure:
@@ -598,6 +599,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
                     child.doc.index[child.id] = child
 
             annotations[extid] = element.json(ignorelist=folia.wrefables) #don't descend into words (do descend for nested span annotations)
+            if 'set' not in annotations[extid]: annotations[extid]['set'] = None #translates to null
             annotations[extid]['span'] = True
             annotations[extid]['targets'] = [ x.id for x in element.wrefs(recurse=False) ]
             scope =  list(element.wrefs(recurse=True))
