@@ -552,9 +552,12 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             annotations[extid]['targets'] = [ structureelement.id ]
             annotations[extid]['scope'] = [ structureelement.id ]
             annotations[extid]['children'] = {} #reset, prevent duplication, annotations are gather under 'annotations' instead by the next line:
-            annotations[extid]['annotations'] = getannotations_in(element,structure,annotations, inalternative=element.id, auth=False,debug=debug,log=log,idprefix=element.id)
+            subids = getannotations_in(element,structure,annotations, inalternative=element.id, auth=False,debug=debug,log=log,idprefix=element.id)
+            annotations[extid]['annotations'] = subids
             if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
+            for subid in subids:
+                structure[structureelement.id]['annotations'].append(subid) #link structure directly to alternative annotations
         elif isinstance(element,( folia.TextContent, folia.PhonContent, folia.AbstractInlineAnnotation, folia.String)) and not spanonly:
             processed = True
             annotations[extid] = element.json()
