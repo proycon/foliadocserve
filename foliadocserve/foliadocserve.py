@@ -630,7 +630,7 @@ class Root:
                 if logfile: traceback.print_tb(exc_traceback, limit=50, file=logfile)
                 raise cherrypy.HTTPError(404, "FoLiA error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e) + "\n\nQuery was: " + rawquery)
 
-            if doc.metadatatype == folia.MetaDataType.NATIVE:
+            if doc.metadatatype == "native":
                 doc.changed = True
                 self.docstore.lastaccess[docsel][sid] = time.time()
                 log("[METADATA EDIT ON " + "/".join(docsel)  + "]")
