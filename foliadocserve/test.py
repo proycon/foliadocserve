@@ -268,6 +268,12 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(rel.cls, "test" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(rel.format, "text/html" , testmessage + "Testing format", testresult )
             testresult, testmessage = testequal(rel.href, "http://duizendensnoepjes.nl" , testmessage + "Testing href", testresult )
+        elif testname == "relation_add_internal":
+            chunk = doc['untitleddoc.p.2.s.1.chunking.1.chunk.1']
+            rel = next(chunk.select(folia.Relation))
+            testresult, testmessage = testequal(rel.__class__,  folia.Relation , testmessage + "Testing whether relation is made", testresult )
+            testresult, testmessage = testequal(rel.cls, "test" , testmessage + "Testing class", testresult )
+            testresult, testmessage = testequal(rel.targets()[0].id , "untitleddoc.p.2.s.1.w.2" , testmessage + "Testing xref target", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
