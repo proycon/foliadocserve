@@ -283,6 +283,15 @@ def test(doc, testname, testmessage = ""):
                 testresult, testmessage = testequal(altpos.__class__, folia.PosAnnotation , testmessage + "Testing type", testresult )
                 testresult, testmessage = testequal(altpos.cls, "LID(onbep,stan,rest)" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(found, 1, testmessage + "Testing we got the right amount of alternatives", testresult )
+        elif testname == "edit_alternative_lemma":
+            w = doc['untitleddoc.p.3.s.1.w.11'];
+            found = 0
+            for alt, altpos in w.alternatives(folia.LemmaAnnotation, returnelements=True):
+                found += 1
+                testresult, testmessage = testequal(alt.__class__, folia.Alternative , testmessage + "Testing alternative type", testresult )
+                testresult, testmessage = testequal(altpos.__class__, folia.LemmaAnnotation , testmessage + "Testing type", testresult )
+                testresult, testmessage = testequal(altpos.cls, "vlugBLAH" , testmessage + "Testing class", testresult )
+            testresult, testmessage = testequal(found, 1, testmessage + "Testing we got the right amount of alternatives", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
