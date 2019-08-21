@@ -385,6 +385,9 @@
             <feat class="zonder" subset="buiging"/>
           </pos>
           <lemma class="snel"/>
+          <alt>
+              <lemma class="vlug" />
+          </alt>
           <morphology>
             <morpheme>
               <t offset="0">snel</t>
