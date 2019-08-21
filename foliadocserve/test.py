@@ -274,6 +274,15 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(rel.__class__,  folia.Relation , testmessage + "Testing whether relation is made", testresult )
             testresult, testmessage = testequal(rel.cls, "test" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(rel.targets()[0].id , "untitleddoc.p.2.s.1.w.2" , testmessage + "Testing xref target", testresult )
+        elif testname == "alternative_pos":
+            w = doc['untitleddoc.p.3.s.6.w.8'];
+            found = 0
+            for alt, altpos in w.alternatives(folia.PosAnnotation, returnelements=True):
+                found += 1
+                testresult, testmessage = testequal(alt.__class__, folia.Alternative , testmessage + "Testing alternative type", testresult )
+                testresult, testmessage = testequal(altpos.__class__, folia.PosAnnotation , testmessage + "Testing type", testresult )
+                testresult, testmessage = testequal(altpos.cls, "LID(onbep,stan,rest)" , testmessage + "Testing class", testresult )
+            testresult, testmessage = testequal(found, 1, testmessage + "Testing we got the right amount of alternatives", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
