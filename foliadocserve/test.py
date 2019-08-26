@@ -275,7 +275,7 @@ def test(doc, testname, testmessage = ""):
             testresult, testmessage = testequal(rel.cls, "test" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(rel.targets()[0].id , "untitleddoc.p.2.s.1.w.2" , testmessage + "Testing xref target", testresult )
         elif testname == "alternative_pos":
-            w = doc['untitleddoc.p.3.s.6.w.8'];
+            w = doc['untitleddoc.p.3.s.6.w.8']
             found = 0
             for alt, altpos in w.alternatives(folia.PosAnnotation, returnelements=True):
                 found += 1
@@ -284,7 +284,7 @@ def test(doc, testname, testmessage = ""):
                 testresult, testmessage = testequal(altpos.cls, "LID(onbep,stan,rest)" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(found, 1, testmessage + "Testing we got the right amount of alternatives", testresult )
         elif testname == "edit_alternative_lemma":
-            w = doc['untitleddoc.p.3.s.1.w.11'];
+            w = doc['untitleddoc.p.3.s.1.w.11']
             found = 0
             for alt, altpos in w.alternatives(folia.LemmaAnnotation, returnelements=True):
                 found += 1
@@ -292,6 +292,9 @@ def test(doc, testname, testmessage = ""):
                 testresult, testmessage = testequal(altpos.__class__, folia.LemmaAnnotation , testmessage + "Testing type", testresult )
                 testresult, testmessage = testequal(altpos.cls, "vlugBLAH" , testmessage + "Testing class", testresult )
             testresult, testmessage = testequal(found, 1, testmessage + "Testing we got the right amount of alternatives", testresult )
+        elif testname == "edit_structure_class":
+            w = doc['untitleddoc.p.2.s.1.w.1']
+            testresult, testmessage = testequal(w.cls, "NUMBER" , testmessage + "Testing class", testresult )
         else:
             testresult = False
             testmessage += "No such test: " + testname
