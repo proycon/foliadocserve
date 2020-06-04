@@ -1027,6 +1027,11 @@ def main():
     args = parser.parse_args()
     logfile = open(args.logfile,'a',encoding='utf-8')
     log("foliadocserve " + VERSION)
+    try:
+        args.workdir = os.path.realpath(args.workdir)
+    except:
+        log("ERROR: Document root directory " + str(args.workdir) + " does not exist")
+        sys.exit(2)
     os.chdir(args.workdir)
     cherrypy.config.update({
         'server.socket_host': args.host,
