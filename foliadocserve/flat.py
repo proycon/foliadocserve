@@ -480,11 +480,12 @@ def getannotations(doc, structure, annotations = None,debug=False,log=lambda s: 
     return annotations
 
 def getannotations_in(parentelement, structure, annotations, incorrection=None, inalternative=None,auth=True, debug=False,log=lambda s: print(s,file=sys.stderr),idprefix=None, spanonly=False):
-    #Get annotations in the specified parentelement and add them to the annotations dictionary (passed as argument)
-    #Structure dictionary is also passed and references for all found annotations are made
+    """Get annotations in the specified parentelement and add them to the annotations dictionary (passed as argument).
+    Structure dictionary is also passed and references for all found annotations are made."""
+
     idlist = []
     checkstrings = folia.AnnotationType.STRING in parentelement.doc.annotationdefaults
-    if isinstance(parentelement, folia.AbstractStructureElement):
+    if isinstance(parentelement, (folia.AbstractStructureElement, folia.String)):
         structureelement = parentelement
     else:
         structureelement = parentelement.ancestor(folia.AbstractStructureElement)
@@ -643,7 +644,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             annotations[extid]['auth'] = auth
             idlist.append(extid)
 
-        if isinstance(element, ( folia.AbstractAnnotationLayer, folia.AbstractSpanAnnotation, folia.Suggestion)): #folia.String should be added but this breaks stuff
+        if isinstance(element, ( folia.AbstractAnnotationLayer, folia.AbstractSpanAnnotation, folia.Suggestion, folia.String)):
             #descend into nested annotations
             subidlist = getannotations_in(element,structure, annotations,debug=debug,log=log)
 
