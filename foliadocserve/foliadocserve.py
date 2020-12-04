@@ -2,8 +2,8 @@
 #---------------------------------------------------------------
 # FoLiA Document Server
 #   by Maarten van Gompel
-#   Centre for Language Studies
-#   Radboud University Nijmegen
+#   Centre for Language & Speech Technology, Radboud University Nijmegen
+#   & KNAW Humanities Cluster
 #   http://proycon.github.io/folia
 #   http://github.com/proycon/foliadocserve
 #   proycon AT anaproy DOT nl
