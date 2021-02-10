@@ -54,7 +54,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.7.4"
+VERSION = "0.7.5"
 PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\" src \"https://github.com/proycon/foliadocserve\""
 
 logfile = None
@@ -254,7 +254,7 @@ class DocStore:
             log("Loading " + filename)
             mainprocessor = folia.Processor.create(name="foliadocserve", version=VERSION, host=getfqdn(), folia_version=folia.FOLIAVERSION, src="https://github.com/proycon/foliadocserve")
             try:
-                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,allowadhocsets=True,processor=mainprocessor)
+                self.data[key] = folia.Document(file=filename, setdefinitions=self.setdefinitions, loadsetdefinitions=True,autodeclare=True,allowadhocsets=True,processor=mainprocessor,fixunassignedprocessor=True)
                 if folia.checkversion(self.data[key].version, "2.0.0") < 0:
                     log("Upgrading " + self.data[key].filename)
                     upgrader = folia.Processor("foliaupgrade", version=FOLIATOOLSVERSION, src="https://github.com/proycon/foliatools")
