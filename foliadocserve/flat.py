@@ -213,6 +213,10 @@ def gethtmltext(element, textclass="current"):
                 tag = "i"
             elif element.cls and (element.cls[:3] == 'lit' or element.cls[:4] == 'verb' or element.cls[:4] == 'code'):
                 tag = "tt"
+            elif element.cls and (element.cls == 'superscript' or element.cls == 'super'):
+                tag = "sup"
+            elif element.cls and (element.cls == 'subscript' or element.cls == 'sub'):
+                tag = "sub"
             else:
                 cls = "style"
         elif isinstance(element, folia.TextMarkupError):
