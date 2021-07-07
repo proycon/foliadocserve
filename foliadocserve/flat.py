@@ -19,6 +19,7 @@
 import json
 import random
 import sys
+import unicodedata
 from folia import fql
 import folia.main as folia
 from foliatools.foliatextcontent import linkstrings
@@ -197,7 +198,9 @@ def gethtmltext(element, textclass="current"):
     checkstrings = folia.AnnotationType.STRING in element.doc.annotationdefaults
 
     s = ""
-    if isinstance(element, folia.AbstractTextMarkup): #markup
+    if isinstance(element, folia.Linebreak):
+        return "<br/>"
+    elif isinstance(element, folia.AbstractTextMarkup): #markup
         tag = "span"
         cls = None #CSS class, will be foliatype_foliaclass or foliatype if no folia class exists
         attribs = ""
@@ -257,29 +260,15 @@ def gethtmltext(element, textclass="current"):
             if attribs:
                 s += attribs
             s += ">"
-        for e in element:
-            if isinstance(e,str):
-                s += e
-            elif isinstance(e, folia.Linebreak):
-                s += "<br/>"
-            elif isinstance(e, folia.AbstractTextMarkup) or isinstance(e, folia.Linebreak): #markup
-                if s: s += e.TEXTDELIMITER #for AbstractMarkup, will usually be ""
-                s += gethtmltext(e)
+        s += textcontent2html(element)
         if tag:
             s += "</" + tag + ">"
         return s
-    elif isinstance(element, folia.Linebreak):
-        return "<br/>"
     elif isinstance(element, folia.TextContent):
         if checkstrings and element.ancestor(folia.AbstractStructureElement).hasannotation(folia.String) and not any( isinstance(x,folia.TextMarkupString) for x in element):
             linkstrings(element.ancestor(folia.AbstractStructureElement), element.cls)
 
-        for e in element:
-            if isinstance(e,str):
-                s += e
-            elif isinstance(e, folia.AbstractTextMarkup) or isinstance(e, folia.Linebreak): #markup
-                if s: s += e.TEXTDELIMITER #for AbstractMarkup, will usually be ""
-                s += gethtmltext(e)
+        s += textcontent2html(element)
         #hyperlink
         if element.href:
             return "<a href=\"" + element.href + "\">" + s + "</a>"
@@ -287,6 +276,68 @@ def gethtmltext(element, textclass="current"):
             return s
     else:
         return gethtmltext(element.textcontent(textclass, hidden=True)) #only explicit text! include hidden text
+
+def textcontent2html(element):
+    s = ""
+    pendingspace = False
+    for e in element:
+        if folia.isstring(e):
+            if pendingspace: #flush the pendingspace buffer
+                s += "\1" #\1 is a temporary marker that translates to &nbsp; later
+                pendingspace = False
+            #This implements https://github.com/proycon/folia/issues/88
+            #FoLiA >= v2.5 behaviour (introduced earlier in v2.4.1 but modified thereafter)
+            l = len(s)
+            for j, line in enumerate(e.split("\n")):
+                if element.preservespace:
+                    s2 = unicodedata.normalize('NFC', line.strip("\r")) #strip only artefacts of DOS-style line endings, leave all intact
+                else:
+                    s2 = unicodedata.normalize('NFC', folia.norm_spaces(line.strip(" \r"))) #strips leading and trailing whitespace per line (proycon/folia#88)
+                                                        #norm_spaces strips multi-spaces in the middle
+                                                        #also strips artefacts of DOS-style line-endings
+                if j > 0 and s2 and len(s) != l:
+                    #insert spaces between lines that used to be newline separated
+                    s += " "
+                elif s2 and line and (line[0] != "\n" and folia.is_space(line[0])) and not element.preservespace:
+                    #we have leading indentation we may need to collapse or ignore entirely
+                    #we can't be sure yet what to do so we add a temporary placeholder \0
+                    #this will later be handled in postprocess_spaces() (converts to a space only if no space preceeds it)
+                    s += "\0"
+                s += s2.replace("  ", "\1\1").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+
+            if e and folia.is_space(e[-1]) and s and not element.preservespace:
+                #this item has trailing spaces but we stripped them
+                #this may be premature so
+                #we reserve to output them later in case there is a next item
+                pendingspace = True
+        elif e.PRINTABLE:
+            if pendingspace:
+                s += "\1" #\1 is a temporary marker that translates to &nbsp; later
+                pendingspace = False
+            if s:
+                s += e.gettextdelimiter().replace("\n","<br/>") #for AbstractMarkup, will usually be "" (but we need it still for <br/>)
+            s += gethtmltext(e)
+
+    if element.preservespace:
+        return s.replace("\1","&nbsp;")
+    else:
+        return postprocess_spaces(s)
+
+def postprocess_spaces(s):
+    r"""Postprocessing for spaces, translates temporary \0 bytes to spaces if they are are not preceeded by whitespace.
+    This is a HTML-targetted copy of the equivalent function in foliapy"""
+    s2 = ""
+    for i, c in enumerate(s):
+        if c == "\0":
+            if i > 0 and not folia.is_space(s[i-1]) and s[i-1] != "\1" and s[i-1:i+4] != "<br/>" and s[i-1:i+5] != "&nbsp;":
+                s2 += " "
+            #null byte is dropped otherwise
+        elif c == "\1":
+            s2 += "&nbsp;"
+        else:
+            s2 += c
+    return s2
+
 
 class Bookkeeper:
     def __init__(self):
@@ -572,7 +623,7 @@ def getannotations_in(parentelement, structure, annotations, incorrection=None, 
             if auth and structureelement.id in structure:
                 structure[structureelement.id]['annotations'].append(extid) #link structure to annotations
             if isinstance(element,(folia.TextContent, folia.PhonContent)):
-                if any( isinstance(x,folia.AbstractTextMarkup) for x in element) or checkstrings:
+                if any( isinstance(x,(folia.AbstractTextMarkup, folia.Linebreak)) for x in element) or checkstrings:
                     annotations[extid]['htmltext'] = gethtmltext(element,element.cls)
             #See if there is a correction element with only suggestions pertaining to this annotation, link to it using 'hassuggestions':
             for c in structureelement.select(folia.Correction):
