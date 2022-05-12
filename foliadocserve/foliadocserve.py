@@ -54,7 +54,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.7.6"
+VERSION = "0.7.7"
 PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\" src \"https://github.com/proycon/foliadocserve\""
 
 logfile = None
@@ -288,7 +288,10 @@ class DocStore:
             os.chdir(targetdir)
             if doinit:
                 log("Initialising git repository in  " + targetdir)
-                r = os.system("git init --shared \"" + self.gitshare + "\"")
+                if self.gitshare:
+                    r = os.system("git init --shared=\"" + self.gitshare + "\"")
+                else:
+                    r = os.system("git init")
                 if r != 0:
                     log("ERROR during git init of " + targetdir)
                     self.done(key)
