@@ -183,7 +183,7 @@ class AutoUnloader(cherrypy.process.plugins.SimplePlugin):
 
 
 class DocStore:
-    def __init__(self, workdir, expiretime, git=False, gitmode="user", gitshare=True, ignorefail=False, debug=False):
+    def __init__(self, workdir, expiretime, git=False, gitmode="user", gitshare="group", ignorefail=False, debug=False):
         log("Initialising document store in " + workdir)
         self.workdir = workdir
         self.expiretime = expiretime
@@ -440,6 +440,8 @@ class DocStore:
             for d in self.lastaccess:
                 if d not in unload:
                     dounload = True #falsify: all sessions must be expired before we can actually unload the document
+                    expirecheck = time.time()
+                    sid = "unknown"
                     for sid, t in self.lastaccess[d].items():
                         expirecheck = time.time() - t
                         if expirecheck < self.expiretime:
@@ -566,6 +568,7 @@ class Root:
         sessiondocsel = None
         queries = []
         metachanges = {}
+        docsel = ""
         for rawquery in rawqueries:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
@@ -627,7 +630,7 @@ class Root:
                 log("[QUERY FAILED] No such document")
                 raise cherrypy.HTTPError(404, "Document not found: " + docsel[0] + "/" + docsel[1])
             except Exception as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
+                _exc_type, _exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
                 print("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e), file=sys.stderr)
                 log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e))
@@ -692,7 +695,7 @@ class Root:
                 log("[QUERY FAILED] FQL Query Error: " + str(e))
                 raise cherrypy.HTTPError(404, "FQL query error: " + str(e))
             except Exception as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
+                _exc_type, _exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
                 log("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e))
                 print("[QUERY FAILED] FoLiA Error in " + "/".join(docsel) + ": [" + e.__class__.__name__ + "] " + str(e), file=sys.stderr)
@@ -720,7 +723,7 @@ class Root:
                 self.setsession(sessiondocsel[0],sessiondocsel[1],sid, xresults)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
-                raise "{\"version\":\""+ VERSION +"\"} //multidoc response, not producing results"
+                return "{\"version\":\""+ VERSION +"\"} //multidoc response, not producing results"
             elif doc:
                 log("[Parsing results for FLAT]")
                 out =  parseresults(results, doc, **flatargs)
@@ -730,13 +733,16 @@ class Root:
             out = results[0]
 
 
+        assert isinstance(out, str) #pyright: ignore[reportPossiblyUnboundVariable]
+
+
         if docsel[0] == "testflat":
             testresult = self.docstore.save(docsel) #won't save, will run tests instead
             log("Test result: " +str(repr(testresult)))
 
 
             if format == "flat":
-                out = json.loads(str(out,'utf-8'))
+                out = json.loads(out)
                 out['testresult'] = testresult[0]
                 out['testmessage'] = testresult[1]
                 out['queries'] = rawqueries
@@ -954,7 +960,7 @@ class Root:
             response['docid'] = doc.id
             self.docstore[(namespace,doc.id)] = doc
         except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
+            _exc_type, _exc_value, exc_traceback = sys.exc_info()
             formatted_lines = traceback.format_exc().splitlines()
             traceback.print_tb(exc_traceback, limit=50, file=sys.stderr)
             response['error'] = "Uploaded file is no valid FoLiA Document: " + str(e) + " -- " "\n".join(formatted_lines)
@@ -1000,7 +1006,6 @@ class Root:
 def needsfoliaupgrade(data):
     if isinstance(data, bytes):
         data = str(data,'utf-8')
-    snippet = data[:512]
     regexp = re.compile('version="([0-9\.]+)"')
     match = regexp.search(data)
     if match:
