@@ -731,8 +731,6 @@ class Root:
             out = results[0]
 
 
-        assert isinstance(out, str) #pyright: ignore[reportPossiblyUnboundVariable]
-
 
         if docsel[0] == "testflat":
             testresult = self.docstore.save(docsel) #won't save, will run tests instead
