@@ -568,13 +568,11 @@ class Root:
         sessiondocsel = None
         queries = []
         metachanges = {}
-        docsel = ""
         for rawquery in rawqueries:
             try:
                 docsel, rawquery = getdocumentselector(rawquery)
                 rawquery = rawquery.replace("$FOLIADOCSERVE_PROCESSOR", PROCESSOR_FOLIADOCSERVE)
                 if not docsel: docsel = prevdocsel
-                assert isinstance(docsel,str)
                 self.docstore.use(docsel)
                 if self.debug >= 2: log("[acquired lock " + "/".join(docsel)+"]")
                 if not sessiondocsel: sessiondocsel = docsel
