@@ -54,7 +54,7 @@ class NoSuchDocument(Exception):
     pass
 
 
-VERSION = "0.7.7"
+VERSION = "0.7.8"
 PROCESSOR_FOLIADOCSERVE = "PROCESSOR name \"foliadocserve\" version \"" + VERSION + "\" host \"" +getfqdn() + "\" folia_version \"" + folia.FOLIAVERSION + "\" src \"https://github.com/proycon/foliadocserve\""
 
 logfile = None
