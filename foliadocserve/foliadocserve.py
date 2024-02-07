@@ -571,6 +571,7 @@ class Root:
                 docsel, rawquery = getdocumentselector(rawquery)
                 rawquery = rawquery.replace("$FOLIADOCSERVE_PROCESSOR", PROCESSOR_FOLIADOCSERVE)
                 if not docsel: docsel = prevdocsel
+                assert isinstance(docsel,str)
                 self.docstore.use(docsel)
                 if self.debug >= 2: log("[acquired lock " + "/".join(docsel)+"]")
                 if not sessiondocsel: sessiondocsel = docsel
@@ -719,7 +720,7 @@ class Root:
                 self.setsession(sessiondocsel[0],sessiondocsel[1],sid, xresults)
             cherrypy.response.headers['Content-Type']= 'application/json'
             if multidoc:
-                raise "{\"version\":\""+VERSION +"\"} //multidoc response, not producing results"
+                raise "{\"version\":\""+ VERSION +"\"} //multidoc response, not producing results"
             elif doc:
                 log("[Parsing results for FLAT]")
                 out =  parseresults(results, doc, **flatargs)
@@ -797,9 +798,9 @@ class Root:
         if (namespace,docid) in self.docstore:
             #self.bgtask.put( self.docstore.save, (namespace,docid), message)
             self.docstore.save( (namespace,docid), message)
-            return b"{\"saved\":1, \"version\": \"" + VERSION.encode('utf-8')+ "\"}"
+            return b"{\"saved\":1, \"version\": \"" + VERSION.encode('utf-8')+ b"\"}"
         else:
-            return b"{\"saved\":0, \"version\": \"" + VERSION.encode('utf-8')+ "\"}"
+            return b"{\"saved\":0, \"version\": \"" + VERSION.encode('utf-8')+ b"\"}"
 
 
     @cherrypy.expose
@@ -808,7 +809,7 @@ class Root:
             raise cherrypy.HTTPError(400, "Expected commithash")
 
         if not all([ x.isalnum() for x in commithash ]):
-            return b"{\"version\": \"" + VERSION.encode('utf-8')+ "\"}"
+            return b"{\"version\": \"" + VERSION.encode('utf-8')+ b"\"}"
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if self.docstore.git:
@@ -824,9 +825,9 @@ class Root:
             r = os.system("git checkout " + commithash + " " + self.docstore.getfilename(key) + " && git commit -m \"Reverting to commit " + commithash + "\"")
             if r != 0:
                 log("Error during git revert of " + self.docstore.getfilename(key))
-            return b"{\"version\": \"" + VERSION.encode('utf-8')+ "\"}"
+            return b"{\"version\": \"" + VERSION.encode('utf-8')+ b"\"}"
         else:
-            return b"{\"version\": \"" + VERSION.encode('utf-8')+ "\"}"
+            return b"{\"version\": \"" + VERSION.encode('utf-8')+ b"\"}"
 
 
 
